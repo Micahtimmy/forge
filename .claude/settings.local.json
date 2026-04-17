@@ -47,7 +47,12 @@
       "Bash(curl -s http://localhost:3001)",
       "Bash(curl *)",
       "Bash(npx playwright *)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(gh auth *)",
+      "Bash(npx vercel *)",
+      "Bash(gh repo *)",
+      "Bash(vercel *)",
+      "Bash(npx supabase *)"
     ]
   }
 }

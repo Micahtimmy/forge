@@ -54,3 +54,6 @@ next-env.d.ts
 
 # Scripts output
 *.log
+
+.vercel
+supabase/.temp/
