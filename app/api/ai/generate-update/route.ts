@@ -1,49 +1,54 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getModel, GENERATION_CONFIGS } from "@/lib/ai/client";
 import {
   GENERATE_UPDATE_SYSTEM,
   buildUpdatePrompt,
 } from "@/lib/ai/prompts/generate-update";
+import { authenticateRequest } from "@/lib/api/auth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
-// Request validation schema
+// Request validation schema with size limits
 const generateUpdateSchema = z.object({
   context: z.object({
-    sprintName: z.string(),
-    sprintGoal: z.string().optional(),
+    sprintName: z.string().max(200),
+    sprintGoal: z.string().max(1000).optional(),
     completedStories: z
       .array(
         z.object({
-          key: z.string(),
-          title: z.string(),
-          points: z.number().optional(),
+          key: z.string().max(50),
+          title: z.string().max(500),
+          points: z.number().min(0).max(100).optional(),
         })
       )
+      .max(100)
       .optional(),
     inProgressStories: z
       .array(
         z.object({
-          key: z.string(),
-          title: z.string(),
-          progress: z.number().optional(),
+          key: z.string().max(50),
+          title: z.string().max(500),
+          progress: z.number().min(0).max(100).optional(),
         })
       )
+      .max(100)
       .optional(),
     blockers: z
       .array(
         z.object({
-          description: z.string(),
-          impact: z.string(),
-          resolution: z.string().optional(),
+          description: z.string().max(1000),
+          impact: z.string().max(500),
+          resolution: z.string().max(1000).optional(),
         })
       )
+      .max(20)
       .optional(),
-    velocityTarget: z.number().optional(),
-    velocityActual: z.number().optional(),
-    highlights: z.array(z.string()).optional(),
-    risks: z.array(z.string()).optional(),
-    decisions: z.array(z.string()).optional(),
-    additionalContext: z.string().optional(),
+    velocityTarget: z.number().min(0).max(1000).optional(),
+    velocityActual: z.number().min(0).max(1000).optional(),
+    highlights: z.array(z.string().max(500)).max(20).optional(),
+    risks: z.array(z.string().max(500)).max(20).optional(),
+    decisions: z.array(z.string().max(500)).max(20).optional(),
+    additionalContext: z.string().max(5000).optional(),
   }),
   audience: z.enum(["executive", "team", "client", "board"]),
   tone: z.number().min(1).max(5),
@@ -51,6 +56,22 @@ const generateUpdateSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate request
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimit = checkRateLimit(
+      req,
+      auth.context.user.id,
+      RATE_LIMITS.aiGeneration
+    );
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
     const body = await req.json();
     const validated = generateUpdateSchema.parse(body);
 
@@ -123,10 +144,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return Response.json(
+    // Don't expose internal error details in production
+    return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to generate update",
+        error: "Failed to generate update",
       },
       { status: 500 }
     );

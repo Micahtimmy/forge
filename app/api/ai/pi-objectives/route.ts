@@ -5,32 +5,54 @@ import {
   streamPIObjectives,
   type PIContext,
 } from "@/lib/ai/generate-pi-objectives";
+import { authenticateRequest } from "@/lib/api/auth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
-// Request validation schema
+// Request validation schema with size limits
 const piObjectivesSchema = z.object({
-  piName: z.string(),
-  startDate: z.string(),
-  endDate: z.string(),
+  piName: z.string().max(200),
+  startDate: z.string().max(50),
+  endDate: z.string().max(50),
   iterations: z.number().int().min(1).max(12),
-  teams: z.array(
-    z.object({
-      name: z.string(),
-      capacity: z.number().int().min(0),
-      features: z.array(
-        z.object({
-          key: z.string(),
-          title: z.string(),
-          description: z.string().nullable(),
-          storyPoints: z.number().int().min(0),
-        })
-      ),
-    })
-  ),
+  teams: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        capacity: z.number().int().min(0).max(10000),
+        features: z
+          .array(
+            z.object({
+              key: z.string().max(50),
+              title: z.string().max(500),
+              description: z.string().max(5000).nullable(),
+              storyPoints: z.number().int().min(0).max(1000),
+            })
+          )
+          .max(100),
+      })
+    )
+    .max(50),
   stream: z.boolean().optional().default(false),
 });
 
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate request
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimit = checkRateLimit(
+      req,
+      auth.context.user.id,
+      RATE_LIMITS.aiGeneration
+    );
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
     const body = await req.json();
     const validated = piObjectivesSchema.parse(body);
 
@@ -113,11 +135,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Don't expose internal error details in production
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to generate PI objectives",
+        error: "Failed to generate PI objectives",
       },
       { status: 500 }
     );

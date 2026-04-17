@@ -5,42 +5,50 @@ import {
   streamRiskAnalysis,
   type RiskAnalysisContext,
 } from "@/lib/ai/analyze-risks";
+import { authenticateRequest } from "@/lib/api/auth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
-// Request validation schema
+// Request validation schema with size limits
 const riskAnalysisSchema = z.object({
-  piName: z.string(),
-  startDate: z.string(),
-  endDate: z.string(),
-  teams: z.array(
-    z.object({
-      name: z.string(),
-      capacity: z.number().int().min(0),
-      committedPoints: z.number().int().min(0),
-      objectives: z.array(
-        z.object({
-          title: z.string(),
-          businessValue: z.number().int().min(1).max(10),
-          commitment: z.enum(["committed", "uncommitted"]),
-        })
-      ),
-    })
-  ),
-  dependencies: z.array(
-    z.object({
-      id: z.string(),
-      fromTeam: z.string(),
-      toTeam: z.string(),
-      fromStory: z.string(),
-      toStory: z.string(),
-      status: z.string(),
-      description: z.string().optional(),
-    })
-  ),
+  piName: z.string().max(200),
+  startDate: z.string().max(50),
+  endDate: z.string().max(50),
+  teams: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        capacity: z.number().int().min(0).max(10000),
+        committedPoints: z.number().int().min(0).max(10000),
+        objectives: z
+          .array(
+            z.object({
+              title: z.string().max(500),
+              businessValue: z.number().int().min(1).max(10),
+              commitment: z.enum(["committed", "uncommitted"]),
+            })
+          )
+          .max(50),
+      })
+    )
+    .max(50),
+  dependencies: z
+    .array(
+      z.object({
+        id: z.string().max(100),
+        fromTeam: z.string().max(200),
+        toTeam: z.string().max(200),
+        fromStory: z.string().max(100),
+        toStory: z.string().max(100),
+        status: z.string().max(50),
+        description: z.string().max(1000).optional(),
+      })
+    )
+    .max(200),
   previousPIMetrics: z
     .object({
       velocityAccuracy: z.number().min(0).max(100),
-      objectivesAchieved: z.number().int().min(0),
-      totalObjectives: z.number().int().min(1),
+      objectivesAchieved: z.number().int().min(0).max(1000),
+      totalObjectives: z.number().int().min(1).max(1000),
     })
     .optional(),
   stream: z.boolean().optional().default(false),
@@ -48,6 +56,22 @@ const riskAnalysisSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate request
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimit = checkRateLimit(
+      req,
+      auth.context.user.id,
+      RATE_LIMITS.aiGeneration
+    );
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
     const body = await req.json();
     const validated = riskAnalysisSchema.parse(body);
 
@@ -135,11 +159,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Don't expose internal error details in production
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to analyze risks",
+        error: "Failed to analyze risks",
       },
       { status: 500 }
     );

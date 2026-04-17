@@ -1,39 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { scoreStory, scoreMultipleStories } from "@/lib/ai/score-story";
+import { authenticateRequest } from "@/lib/api/auth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
 // Request validation schema
 const scoreStorySchema = z.object({
-  storyId: z.string(),
+  storyId: z.string().max(100),
   story: z.object({
-    key: z.string(),
-    title: z.string(),
-    description: z.string().nullable(),
-    acceptanceCriteria: z.string().nullable(),
-    storyPoints: z.number().nullable(),
-    epicKey: z.string().nullable(),
-    labels: z.array(z.string()).nullable(),
+    key: z.string().max(50),
+    title: z.string().max(500),
+    description: z.string().max(10000).nullable(),
+    acceptanceCriteria: z.string().max(10000).nullable(),
+    storyPoints: z.number().min(0).max(100).nullable(),
+    epicKey: z.string().max(50).nullable(),
+    labels: z.array(z.string().max(100)).max(50).nullable(),
   }),
-  rubricId: z.string().optional(),
+  rubricId: z.string().max(100).optional(),
 });
 
 const scoreMultipleSchema = z.object({
-  stories: z.array(
-    z.object({
-      key: z.string(),
-      title: z.string(),
-      description: z.string().nullable(),
-      acceptanceCriteria: z.string().nullable(),
-      storyPoints: z.number().nullable(),
-      epicKey: z.string().nullable(),
-      labels: z.array(z.string()).nullable(),
-    })
-  ),
-  rubricId: z.string().optional(),
+  stories: z
+    .array(
+      z.object({
+        key: z.string().max(50),
+        title: z.string().max(500),
+        description: z.string().max(10000).nullable(),
+        acceptanceCriteria: z.string().max(10000).nullable(),
+        storyPoints: z.number().min(0).max(100).nullable(),
+        epicKey: z.string().max(50).nullable(),
+        labels: z.array(z.string().max(100)).max(50).nullable(),
+      })
+    )
+    .max(50), // Limit batch size
+  rubricId: z.string().max(100).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate request
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimit = checkRateLimit(
+      req,
+      auth.context.user.id,
+      RATE_LIMITS.aiScoring
+    );
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
     const body = await req.json();
 
     // Check if scoring single story or multiple
@@ -72,10 +92,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Don't expose internal error details in production
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to score story",
+        error: "Failed to score story",
       },
       { status: 500 }
     );
