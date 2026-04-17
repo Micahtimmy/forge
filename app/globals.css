@@ -1,0 +1,444 @@
+@import "tailwindcss";
+
+/* ============================================
+   FORGE Design System — CSS Custom Properties
+   ============================================ */
+
+:root {
+  /* ━━━━━━━━━━ BACKGROUNDS ━━━━━━━━━━ */
+  --color-canvas: #080C14;
+  --color-surface-01: #0D1220;
+  --color-surface-02: #141926;
+  --color-surface-03: #1C2333;
+  --color-surface-04: #222C3E;
+
+  /* ━━━━━━━━━━ BORDERS ━━━━━━━━━━ */
+  --color-border: #1E2840;
+  --color-border-strong: #2A3654;
+  --color-border-subtle: #141C2E;
+
+  /* ━━━━━━━━━━ TEXT ━━━━━━━━━━ */
+  --color-text-primary: #E4EAFA;
+  --color-text-secondary: #7D8CA5;
+  --color-text-tertiary: #414F66;
+  --color-text-inverse: #0A0E1A;
+
+  /* ━━━━━━━━━━ BRAND — IRIS ━━━━━━━━━━ */
+  --color-iris: #7C6AF7;
+  --color-iris-light: #A89BFA;
+  --color-iris-dim: rgba(124, 106, 247, 0.12);
+  --color-iris-border: rgba(124, 106, 247, 0.3);
+
+  /* ━━━━━━━━━━ FUNCTIONAL COLOURS ━━━━━━━━━━ */
+  --color-jade: #3DD68C;
+  --color-jade-dim: rgba(61, 214, 140, 0.1);
+  --color-jade-border: rgba(61, 214, 140, 0.25);
+
+  --color-amber: #F5A623;
+  --color-amber-dim: rgba(245, 166, 35, 0.1);
+  --color-amber-border: rgba(245, 166, 35, 0.25);
+
+  --color-coral: #F0714B;
+  --color-coral-dim: rgba(240, 113, 75, 0.1);
+  --color-coral-border: rgba(240, 113, 75, 0.25);
+
+  --color-sky: #4AB8E8;
+  --color-sky-dim: rgba(74, 184, 232, 0.1);
+
+  /* ━━━━━━━━━━ SCORE SYSTEM ━━━━━━━━━━ */
+  --score-excellent: var(--color-jade);
+  --score-good: var(--color-iris);
+  --score-fair: var(--color-amber);
+  --score-poor: var(--color-coral);
+
+  /* ━━━━━━━━━━ GRADIENTS ━━━━━━━━━━ */
+  --gradient-iris: linear-gradient(135deg, #7C6AF7 0%, #5B4CD4 100%);
+  --gradient-canvas: linear-gradient(180deg, #0A0F1A 0%, #080C14 100%);
+  --gradient-card-hover: linear-gradient(135deg, rgba(124, 106, 247, 0.05) 0%, transparent 100%);
+
+  /* ━━━━━━━━━━ TYPOGRAPHY ━━━━━━━━━━ */
+  --font-display: var(--font-syne), 'Georgia', serif;
+  --font-body: var(--font-dm-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Courier New', monospace;
+
+  /* Type Scale */
+  --text-xs: 11px;
+  --leading-xs: 1.4;
+  --text-sm: 13px;
+  --leading-sm: 1.5;
+  --text-base: 14px;
+  --leading-base: 1.6;
+  --text-md: 15px;
+  --leading-md: 1.5;
+  --text-lg: 18px;
+  --leading-lg: 1.4;
+  --text-xl: 22px;
+  --leading-xl: 1.3;
+  --text-2xl: 28px;
+  --leading-2xl: 1.2;
+  --text-3xl: 36px;
+  --leading-3xl: 1.1;
+  --text-4xl: 48px;
+  --leading-4xl: 1.0;
+
+  /* ━━━━━━━━━━ SPACING ━━━━━━━━━━ */
+  --space-px: 1px;
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-3-5: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ━━━━━━━━━━ BORDER RADIUS ━━━━━━━━━━ */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+
+  /* ━━━━━━━━━━ SHADOWS ━━━━━━━━━━ */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  /* Glow shadows */
+  --shadow-iris: 0 0 24px rgba(124, 106, 247, 0.3);
+  --shadow-jade: 0 0 24px rgba(61, 214, 140, 0.25);
+  --shadow-coral: 0 0 24px rgba(240, 113, 75, 0.25);
+  --shadow-amber: 0 0 24px rgba(245, 166, 35, 0.2);
+
+  /* ━━━━━━━━━━ LAYOUT ━━━━━━━━━━ */
+  --sidebar-width-collapsed: 56px;
+  --sidebar-width-expanded: 220px;
+  --topbar-height: 48px;
+  --command-palette-width: 560px;
+  --modal-max-width: 520px;
+  --modal-max-width-lg: 800px;
+
+  /* ━━━━━━━━━━ TRANSITIONS ━━━━━━━━━━ */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* ━━━━━━━━━━ TAILWIND THEME INLINE ━━━━━━━━━━ */
+@theme inline {
+  --color-canvas: var(--color-canvas);
+  --color-surface-01: var(--color-surface-01);
+  --color-surface-02: var(--color-surface-02);
+  --color-surface-03: var(--color-surface-03);
+  --color-surface-04: var(--color-surface-04);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-iris: var(--color-iris);
+  --color-iris-light: var(--color-iris-light);
+  --color-jade: var(--color-jade);
+  --color-amber: var(--color-amber);
+  --color-coral: var(--color-coral);
+  --color-sky: var(--color-sky);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+/* ━━━━━━━━━━ BASE STYLES ━━━━━━━━━━ */
+html {
+  background-color: var(--color-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+}
+
+/* ━━━━━━━━━━ SCROLLBAR STYLING ━━━━━━━━━━ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-01);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+/* ━━━━━━━━━━ SELECTION ━━━━━━━━━━ */
+::selection {
+  background: var(--color-iris-dim);
+  color: var(--color-text-primary);
+}
+
+/* ━━━━━━━━━━ FOCUS STYLES ━━━━━━━━━━ */
+:focus-visible {
+  outline: 2px solid var(--color-iris);
+  outline-offset: 2px;
+}
+
+/* ━━━━━━━━━━ BUTTON BASE ━━━━━━━━━━ */
+.btn {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 7px 14px;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--color-iris);
+  color: white;
+  border: 1px solid var(--color-iris);
+}
+
+.btn-primary:hover {
+  background: var(--color-iris-light);
+}
+
+.btn-secondary {
+  background: var(--color-surface-03);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-04);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--color-surface-03);
+  color: var(--color-text-primary);
+}
+
+.btn-danger {
+  background: var(--color-coral-dim);
+  color: var(--color-coral);
+  border: 1px solid var(--color-coral-border);
+}
+
+.btn-danger:hover {
+  background: var(--color-coral);
+  color: white;
+}
+
+/* Button sizes */
+.btn-xs {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-lg {
+  padding: 10px 20px;
+  font-size: 15px;
+}
+
+.btn-xl {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+/* ━━━━━━━━━━ INPUT BASE ━━━━━━━━━━ */
+.input {
+  background: var(--color-surface-02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 8px 12px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+  width: 100%;
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.input:focus {
+  border-color: var(--color-iris);
+  box-shadow: 0 0 0 3px var(--color-iris-dim);
+}
+
+/* ━━━━━━━━━━ BADGE BASE ━━━━━━━━━━ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+}
+
+.badge-excellent {
+  background: var(--color-jade-dim);
+  color: var(--color-jade);
+  border: 1px solid var(--color-jade-border);
+}
+
+.badge-good {
+  background: var(--color-iris-dim);
+  color: var(--color-iris-light);
+  border: 1px solid var(--color-iris-border);
+}
+
+.badge-fair {
+  background: var(--color-amber-dim);
+  color: var(--color-amber);
+  border: 1px solid var(--color-amber-border);
+}
+
+.badge-poor {
+  background: var(--color-coral-dim);
+  color: var(--color-coral);
+  border: 1px solid var(--color-coral-border);
+}
+
+/* ━━━━━━━━━━ CARD BASE ━━━━━━━━━━ */
+.card {
+  background: var(--color-surface-01);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.card:hover {
+  background: var(--color-surface-02);
+  border-color: var(--color-border-strong);
+}
+
+/* ━━━━━━━━━━ GLASS PANEL ━━━━━━━━━━ */
+.glass-panel {
+  background: rgba(13, 18, 32, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+}
+
+/* ━━━━━━━━━━ SKELETON SHIMMER ━━━━━━━━━━ */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-02) 25%,
+    var(--color-surface-03) 50%,
+    var(--color-surface-02) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ━━━━━━━━━━ SCORE RING ANIMATION ━━━━━━━━━━ */
+@keyframes score-ring-fill {
+  from {
+    stroke-dashoffset: var(--circumference);
+  }
+  to {
+    stroke-dashoffset: var(--score-offset);
+  }
+}
+
+.score-ring-animated {
+  animation: score-ring-fill 800ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ━━━━━━━━━━ TYPOGRAPHY UTILITIES ━━━━━━━━━━ */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+/* ━━━━━━━━━━ REDUCED MOTION ━━━━━━━━━━ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
