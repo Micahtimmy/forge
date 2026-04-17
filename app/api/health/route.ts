@@ -24,7 +24,7 @@ export async function GET() {
       latencyMs: Date.now() - supabaseStart,
       ...(error && { error: "Database connection failed" }),
     };
-  } catch (e) {
+  } catch {
     checks.database = {
       status: "unhealthy",
       latencyMs: Date.now() - supabaseStart,

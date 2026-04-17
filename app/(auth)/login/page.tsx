@@ -192,7 +192,7 @@ function LoginForm() {
 
       {/* Footer */}
       <p className="text-center text-sm text-text-secondary">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/signup" className="text-iris hover:text-iris-light font-medium">
           Sign up
         </Link>

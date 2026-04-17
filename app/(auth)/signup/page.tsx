@@ -73,7 +73,7 @@ export default function SignupPage() {
         </div>
         <div className="pt-4">
           <p className="text-sm text-text-tertiary">
-            Didn't receive the email?{" "}
+            Didn&apos;t receive the email?{" "}
             <button
               type="button"
               className="text-iris hover:text-iris-light font-medium"

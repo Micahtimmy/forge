@@ -166,7 +166,7 @@ export default function OnboardingPage() {
                 Welcome to FORGE
               </h1>
               <p className="text-text-secondary mt-2 max-w-md mx-auto">
-                Let's set up your workspace and get you ready to supercharge your
+                Let&apos;s set up your workspace and get you ready to supercharge your
                 agile delivery with AI-powered insights.
               </p>
             </div>
@@ -262,10 +262,10 @@ export default function OnboardingPage() {
           >
             <div>
               <h2 className="text-xl font-display font-bold text-text-primary">
-                What's your role?
+                What&apos;s your role?
               </h2>
               <p className="text-sm text-text-secondary mt-1">
-                We'll customize your dashboard based on your responsibilities
+                We&apos;ll customize your dashboard based on your responsibilities
               </p>
             </div>
 
@@ -350,7 +350,7 @@ export default function OnboardingPage() {
             </motion.div>
             <div>
               <h2 className="text-2xl font-display font-bold text-text-primary">
-                You're all set!
+                You&apos;re all set!
               </h2>
               <p className="text-text-secondary mt-2">
                 Taking you to your dashboard...

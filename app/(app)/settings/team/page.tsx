@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -10,9 +10,7 @@ import {
   Shield,
   UserCog,
   Trash2,
-  Copy,
   Clock,
-  CheckCircle2,
   AlertCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -34,7 +32,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown";
 import { useToastActions } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -143,8 +140,11 @@ function MemberRow({
     });
   };
 
+  // Memoize current time to avoid React Compiler purity issues
+  const now = useMemo(() => Date.now(), []);
+
   const formatLastActive = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
+    const diff = now - new Date(date).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     if (hours < 1) return "Just now";
     if (hours < 24) return `${hours}h ago`;

@@ -52,7 +52,8 @@
       "Bash(npx vercel *)",
       "Bash(gh repo *)",
       "Bash(vercel *)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

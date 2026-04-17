@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, Suspense } from "react";
+import { useState, useTransition, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -14,36 +14,40 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
-  // Check for error codes in URL (from Supabase)
+  // Check for error codes in URL (from Supabase) - derive from search params
   const errorCode = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
-  useEffect(() => {
+  // Derive error from URL params without useEffect
+  const urlError = useMemo(() => {
     if (errorCode) {
-      setError(errorDescription || "Invalid or expired reset link. Please request a new one.");
+      return errorDescription || "Invalid or expired reset link. Please request a new one.";
     }
+    return null;
   }, [errorCode, errorDescription]);
+
+  const error = formError || urlError;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setFormError("Passwords do not match");
       return;
     }
 
     // Validate password length
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setFormError("Password must be at least 8 characters");
       return;
     }
 
@@ -60,7 +64,7 @@ function ResetPasswordForm() {
           router.push("/");
         }, 2000);
       } else {
-        setError(result.error || "Failed to reset password");
+        setFormError(result.error || "Failed to reset password");
       }
     });
   };
