@@ -73,14 +73,14 @@ export async function middleware(request: NextRequest) {
 
   // Check if user needs onboarding (skip for API routes)
   if (!pathname.startsWith("/api")) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("users")
-      .select("onboarding_completed")
+      .select("id, workspace_id")
       .eq("id", user.id)
       .single();
 
-    // Redirect to onboarding if not completed
-    if (!profile?.onboarding_completed) {
+    // Redirect to onboarding if user doesn't exist in users table or has no workspace
+    if (profileError || !profile || !profile.workspace_id) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
       return NextResponse.redirect(url);

@@ -34,19 +34,26 @@ export async function GET(request: NextRequest) {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        // Check if user has completed onboarding
-        const { data: profile } = await supabase
+        // Check if user exists in users table (has completed onboarding)
+        const { data: profile, error: profileError } = await supabase
           .from("users")
-          .select("onboarding_completed")
+          .select("id, workspace_id")
           .eq("id", user.id)
           .single();
 
-        if (!profile?.onboarding_completed) {
+        // If user doesn't exist in users table or has no workspace, they need onboarding
+        if (profileError || !profile || !profile.workspace_id) {
           return NextResponse.redirect(`${origin}/onboarding`);
         }
+
+        // User exists and has workspace, go to dashboard or requested page
+        return NextResponse.redirect(`${origin}${next}`);
       }
 
-      return NextResponse.redirect(`${origin}${next}`);
+      // No user but no error - go to onboarding
+      return NextResponse.redirect(`${origin}/onboarding`);
+    } else {
+      console.error("Auth callback error:", error.message);
     }
   }
 
