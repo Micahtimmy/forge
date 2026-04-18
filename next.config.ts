@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 // Content Security Policy
 // Strict CSP to prevent XSS attacks
@@ -12,7 +13,7 @@ const ContentSecurityPolicy = `
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://vercel.live;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://vercel.live https://*.sentry.io https://*.ingest.sentry.io;
   upgrade-insecure-requests;
 `.replace(/\n/g, "");
 
@@ -92,4 +93,29 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 };
 
-export default nextConfig;
+// Sentry configuration
+const sentryConfig = {
+  // Suppresses source map upload logs during build
+  silent: true,
+
+  // Upload source maps for better error tracking
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Routes browser requests to Sentry through a Next.js rewrite
+  // to avoid ad-blockers
+  tunnelRoute: "/monitoring",
+
+  // Hides source maps from generated client bundles
+  hideSourceMaps: true,
+
+  // Automatically tree-shake Sentry logger statements
+  disableLogger: true,
+};
+
+// Only wrap with Sentry if DSN is configured
+const finalConfig = process.env.SENTRY_DSN
+  ? withSentryConfig(nextConfig, sentryConfig)
+  : nextConfig;
+
+export default finalConfig;
