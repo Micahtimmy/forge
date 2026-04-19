@@ -65,14 +65,10 @@ export default function OnboardingPage() {
             router.refresh();
           }, 2000);
         } else {
-          const errorMsg = result.error || "Failed to complete setup. Please try again.";
-          setError(errorMsg);
-          alert(`Onboarding error: ${errorMsg}`);
+          setError(result.error || "Failed to complete setup. Please try again.");
         }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred";
-        setError(errorMsg);
-        alert(`Onboarding exception: ${errorMsg}`);
+      } catch {
+        setError("An unexpected error occurred. Please try again.");
       }
     });
   };
