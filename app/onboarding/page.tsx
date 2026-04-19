@@ -185,7 +185,7 @@ export default function OnboardingPage() {
               </p>
             </div>
             <div className="pt-4">
-              <Button onClick={nextStep} className="min-w-[200px]">
+              <Button type="button" onClick={nextStep} className="min-w-[200px]">
                 Get Started
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
@@ -249,11 +249,12 @@ export default function OnboardingPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button variant="secondary" onClick={prevStep}>
+              <Button variant="secondary" type="button" onClick={prevStep}>
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
               <Button
+                type="button"
                 onClick={nextStep}
                 disabled={!canProceed()}
                 className="flex-1"
@@ -329,11 +330,12 @@ export default function OnboardingPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button variant="secondary" onClick={prevStep}>
+              <Button variant="secondary" type="button" onClick={prevStep}>
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
               <Button
+                type="button"
                 onClick={nextStep}
                 disabled={!canProceed() || isPending}
                 className="flex-1"
