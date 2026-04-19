@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   Check,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,22 +46,34 @@ export default function OnboardingPage() {
   const [workspaceName, setWorkspaceName] = useState("");
   const [teamSize, setTeamSize] = useState("");
   const [role, setRole] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleComplete = () => {
+    console.log("handleComplete called", { workspaceName, teamSize, role });
+    setError(null);
     startTransition(async () => {
-      const result = await completeOnboarding({
-        workspaceName,
-        teamSize,
-        role,
-      });
+      console.log("startTransition - calling completeOnboarding");
+      try {
+        const result = await completeOnboarding({
+          workspaceName,
+          teamSize,
+          role,
+        });
+        console.log("completeOnboarding result:", result);
 
-      if (result.success) {
-        setStep("complete");
-        // Redirect to dashboard after animation
-        setTimeout(() => {
-          router.push("/");
-          router.refresh();
-        }, 2000);
+        if (result.success) {
+          setStep("complete");
+          // Redirect to dashboard after animation
+          setTimeout(() => {
+            router.push("/");
+            router.refresh();
+          }, 2000);
+        } else {
+          setError(result.error || "Failed to complete setup. Please try again.");
+        }
+      } catch (err) {
+        console.error("completeOnboarding threw:", err);
+        setError("An unexpected error occurred. Please try again.");
       }
     });
   };
@@ -79,6 +92,7 @@ export default function OnboardingPage() {
   };
 
   const nextStep = () => {
+    console.log("nextStep called, current step:", step);
     switch (step) {
       case "welcome":
         setStep("workspace");
@@ -268,6 +282,14 @@ export default function OnboardingPage() {
                 We&apos;ll customize your dashboard based on your responsibilities
               </p>
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-coral-dim border border-coral-border text-coral text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               {ROLES.map((r) => {

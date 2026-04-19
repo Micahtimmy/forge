@@ -1,8 +1,8 @@
 "use server";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { WorkspaceInsert, UserInsert } from "@/types/supabase";
 
 interface OnboardingData {
   workspaceName: string;
@@ -10,7 +10,19 @@ interface OnboardingData {
   role: string;
 }
 
+// Map onboarding roles to DB roles
+const ROLE_MAP: Record<string, string> = {
+  scrum_master: "sm",
+  product_manager: "pm",
+  program_manager: "pgm",
+  rte: "rte",
+  engineering_manager: "admin",
+  other: "pm",
+};
+
 export async function completeOnboarding(data: OnboardingData) {
+  console.log("=== ONBOARDING: Starting ===", data);
+
   const supabase = await createSupabaseServerClient();
 
   // Get current user
@@ -19,7 +31,10 @@ export async function completeOnboarding(data: OnboardingData) {
     error: userError,
   } = await supabase.auth.getUser();
 
+  console.log("=== ONBOARDING: User check ===", { userId: user?.id, error: userError?.message });
+
   if (userError || !user) {
+    console.error("Onboarding: Not authenticated", userError);
     return {
       success: false,
       error: "Not authenticated",
@@ -30,73 +45,71 @@ export async function completeOnboarding(data: OnboardingData) {
   const slug = data.workspaceName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+    .replace(/(^-|-$)/g, "")
+    + "-" + Date.now().toString(36);
 
-  // Create workspace
-  const workspaceData: WorkspaceInsert = {
-    name: data.workspaceName,
-    slug: slug + "-" + Date.now().toString(36),
-    team_size: data.teamSize,
-    created_by: user.id,
-  };
+  // Map role to DB-compatible value
+  const dbRole = ROLE_MAP[data.role] || "pm";
 
-  const { data: workspace, error: workspaceError } = await supabase
-    .from("workspaces")
-    .insert(workspaceData)
-    .select("id, name")
-    .single();
+  try {
+    // Use admin client to bypass RLS during onboarding
+    const adminClient = createSupabaseAdminClient();
 
-  if (workspaceError) {
-    console.error("Workspace creation error:", workspaceError);
+    // Step 1: Create workspace
+    const { data: workspace, error: workspaceError } = await adminClient
+      .from("workspaces")
+      .insert({
+        name: data.workspaceName,
+        slug: slug,
+      })
+      .select("id, name")
+      .single();
+
+    if (workspaceError) {
+      console.error("Workspace creation error:", workspaceError);
+      return {
+        success: false,
+        error: `Failed to create workspace: ${workspaceError.message}`,
+      };
+    }
+
+    // Step 2: Create user profile
+    const { error: profileError } = await adminClient
+      .from("users")
+      .upsert({
+        id: user.id,
+        email: user.email || "",
+        display_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+        role: dbRole,
+        workspace_id: workspace.id,
+      }, {
+        onConflict: "id",
+      });
+
+    if (profileError) {
+      console.error("Profile update error:", profileError);
+      // Try to delete the workspace we just created
+      await adminClient.from("workspaces").delete().eq("id", workspace.id);
+      return {
+        success: false,
+        error: `Failed to update profile: ${profileError.message}`,
+      };
+    }
+
+    console.log("=== ONBOARDING: Success! ===", { workspaceId: workspace.id });
+    revalidatePath("/");
+
+    return {
+      success: true,
+      workspaceId: workspace.id,
+    };
+  } catch (error) {
+    console.error("=== ONBOARDING: Unexpected error ===", error);
     return {
       success: false,
-      error: "Failed to create workspace",
+      error: "An unexpected error occurred",
     };
   }
-
-  // Update user profile with role and workspace
-  const userData: UserInsert = {
-    id: user.id,
-    email: user.email || "",
-    full_name: user.user_metadata?.full_name || "",
-    role: data.role,
-    workspace_id: workspace.id,
-    onboarding_completed: true,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error: profileError } = await supabase
-    .from("users")
-    .upsert(userData);
-
-  if (profileError) {
-    console.error("Profile update error:", profileError);
-    return {
-      success: false,
-      error: "Failed to update profile",
-    };
-  }
-
-  // Add user as workspace admin
-  const { error: memberError } = await supabase
-    .from("workspace_members")
-    .insert({
-      workspace_id: workspace.id,
-      user_id: user.id,
-      role: "admin",
-    });
-
-  if (memberError) {
-    console.error("Workspace member error:", memberError);
-    // Non-critical, continue anyway
-  }
-
-  revalidatePath("/");
-
-  return {
-    success: true,
-    workspaceId: workspace.id,
-  };
 }
 
 export async function getOnboardingStatus() {
@@ -112,12 +125,15 @@ export async function getOnboardingStatus() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("onboarding_completed")
+    .select("workspace_id")
     .eq("id", user.id)
-    .single<{ onboarding_completed: boolean | null }>();
+    .single();
+
+  // User needs onboarding if they don't have a profile or don't have a workspace
+  const needsOnboarding = !profile || !profile.workspace_id;
 
   return {
-    completed: profile?.onboarding_completed ?? false,
-    needsOnboarding: !profile?.onboarding_completed,
+    completed: !!profile?.workspace_id,
+    needsOnboarding,
   };
 }

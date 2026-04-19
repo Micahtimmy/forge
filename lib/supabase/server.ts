@@ -27,3 +27,5 @@ export async function createSupabaseServerClient() {
     }
   );
 }
+
+export { createSupabaseAdminClient } from "./admin";
