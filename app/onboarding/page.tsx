@@ -49,31 +49,30 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleComplete = () => {
-    console.log("handleComplete called", { workspaceName, teamSize, role });
     setError(null);
     startTransition(async () => {
-      console.log("startTransition - calling completeOnboarding");
       try {
         const result = await completeOnboarding({
           workspaceName,
           teamSize,
           role,
         });
-        console.log("completeOnboarding result:", result);
 
         if (result.success) {
           setStep("complete");
-          // Redirect to dashboard after animation
           setTimeout(() => {
             router.push("/");
             router.refresh();
           }, 2000);
         } else {
-          setError(result.error || "Failed to complete setup. Please try again.");
+          const errorMsg = result.error || "Failed to complete setup. Please try again.";
+          setError(errorMsg);
+          alert(`Onboarding error: ${errorMsg}`);
         }
       } catch (err) {
-        console.error("completeOnboarding threw:", err);
-        setError("An unexpected error occurred. Please try again.");
+        const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred";
+        setError(errorMsg);
+        alert(`Onboarding exception: ${errorMsg}`);
       }
     });
   };
@@ -92,7 +91,6 @@ export default function OnboardingPage() {
   };
 
   const nextStep = () => {
-    console.log("nextStep called, current step:", step);
     switch (step) {
       case "welcome":
         setStep("workspace");
