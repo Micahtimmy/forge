@@ -1,48 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 
 export function RouteProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const progress = useMotionValue(0);
+  const isVisible = useMotionValue(0);
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
 
   useEffect(() => {
-    // Reset on route change
-    setIsLoading(true);
-    setProgress(0);
+    clearTimers();
 
-    // Simulate progress
-    const timer1 = setTimeout(() => setProgress(30), 50);
-    const timer2 = setTimeout(() => setProgress(60), 150);
-    const timer3 = setTimeout(() => setProgress(90), 300);
-    const timer4 = setTimeout(() => {
-      setProgress(100);
-      setTimeout(() => setIsLoading(false), 200);
-    }, 400);
+    // Reset and start progress animation
+    progress.set(0);
+    isVisible.set(1);
 
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearTimeout(timer4);
-    };
-  }, [pathname, searchParams]);
+    timersRef.current.push(setTimeout(() => progress.set(30), 50));
+    timersRef.current.push(setTimeout(() => progress.set(60), 150));
+    timersRef.current.push(setTimeout(() => progress.set(90), 300));
+    timersRef.current.push(setTimeout(() => {
+      progress.set(100);
+      timersRef.current.push(setTimeout(() => isVisible.set(0), 200));
+    }, 400));
+
+    return clearTimers;
+  }, [pathname, searchParams, progress, isVisible, clearTimers]);
+
+  const scaleX = useTransform(progress, [0, 100], [0, 1]);
+  const opacity = useTransform(isVisible, [0, 1], [0, 1]);
 
   return (
-    <AnimatePresence>
-      {isLoading && (
-        <motion.div
-          className="fixed top-0 left-0 right-0 h-0.5 z-[9999] bg-gradient-to-r from-iris via-iris-light to-iris"
-          initial={{ scaleX: 0, transformOrigin: "left" }}
-          animate={{ scaleX: progress / 100 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-        />
-      )}
-    </AnimatePresence>
+    <motion.div
+      className="fixed top-0 left-0 right-0 h-0.5 z-[9999] bg-gradient-to-r from-iris via-iris-light to-iris origin-left"
+      style={{ scaleX, opacity }}
+    />
   );
 }

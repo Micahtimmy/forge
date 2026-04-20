@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { disconnectJira } from "@/lib/jira/auth";
 
 // Disconnect JIRA integration
-export async function POST(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function POST(_req: NextRequest) {
   try {
     // Get user session
     const supabase = await createSupabaseServerClient();

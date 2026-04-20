@@ -252,3 +252,262 @@ export function getSignalUpdateEmailHtml({
 </html>
 `;
 }
+
+export function getSignalUpdateEmailText({
+  recipientName,
+  updateTitle,
+  updatePreview,
+  viewUrl,
+}: {
+  recipientName: string;
+  updateTitle: string;
+  updatePreview: string;
+  viewUrl: string;
+}): string {
+  return `
+PROGRAM UPDATE: ${updateTitle}
+
+Hi ${recipientName},
+
+${updatePreview}
+
+View the full update: ${viewUrl}
+
+---
+Sent via FORGE Signal
+`;
+}
+
+// Welcome Email Template
+export function getWelcomeEmailHtml({
+  userName,
+  loginUrl,
+}: {
+  userName: string;
+  loginUrl: string;
+}): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to FORGE</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #080C14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #080C14;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #0F1219; border-radius: 12px; border: 1px solid #1E2432;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.5px;">
+                FORGE
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 20px 40px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #FFFFFF;">
+                Welcome to FORGE, ${userName}!
+              </h2>
+              <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #A0AEC0;">
+                Your account is ready. FORGE helps you deliver better software with AI-powered insights:
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #1E2432;">
+                    <p style="margin: 0; font-size: 14px; color: #FFFFFF; font-weight: 600;">Quality Gate</p>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #A0AEC0;">AI-powered story scoring for your backlog</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #1E2432;">
+                    <p style="margin: 0; font-size: 14px; color: #FFFFFF; font-weight: 600;">Signal</p>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #A0AEC0;">Generate stakeholder updates in seconds</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0;">
+                    <p style="margin: 0; font-size: 14px; color: #FFFFFF; font-weight: 600;">Horizon</p>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #A0AEC0;">Visual PI planning with dependency mapping</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <a href="${loginUrl}" style="display: inline-block; padding: 14px 32px; background-color: #6366F1; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 8px;">
+                      Get Started
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 32px 40px; border-top: 1px solid #1E2432;">
+              <p style="margin: 0 0 8px; font-size: 13px; color: #718096;">
+                Need help getting started? Reply to this email or check our documentation.
+              </p>
+              <p style="margin: 0; font-size: 13px; color: #718096;">
+                Happy building!
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Copyright -->
+        <p style="margin: 32px 0 0; font-size: 12px; color: #4A5568;">
+          &copy; ${new Date().getFullYear()} FORGE. All rights reserved.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+}
+
+export function getWelcomeEmailText({
+  userName,
+  loginUrl,
+}: {
+  userName: string;
+  loginUrl: string;
+}): string {
+  return `
+Welcome to FORGE, ${userName}!
+
+Your account is ready. FORGE helps you deliver better software with AI-powered insights:
+
+- Quality Gate: AI-powered story scoring for your backlog
+- Signal: Generate stakeholder updates in seconds
+- Horizon: Visual PI planning with dependency mapping
+
+Get started: ${loginUrl}
+
+Need help? Reply to this email or check our documentation.
+
+Happy building!
+
+---
+FORGE - AI-powered program intelligence
+`;
+}
+
+// Password Reset Email Template
+export function getPasswordResetEmailHtml({
+  userName,
+  resetUrl,
+}: {
+  userName: string;
+  resetUrl: string;
+}): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset your FORGE password</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #080C14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #080C14;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #0F1219; border-radius: 12px; border: 1px solid #1E2432;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.5px;">
+                FORGE
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 20px 40px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #FFFFFF;">
+                Reset your password
+              </h2>
+              <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #A0AEC0;">
+                Hi ${userName}, we received a request to reset your FORGE password. Click the button below to create a new one.
+              </p>
+
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <a href="${resetUrl}" style="display: inline-block; padding: 14px 32px; background-color: #6366F1; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 8px;">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 24px 0 0; font-size: 13px; color: #718096;">
+                Or copy and paste this link into your browser:
+              </p>
+              <p style="margin: 8px 0; font-size: 13px; color: #6366F1; word-break: break-all;">
+                ${resetUrl}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 32px 40px; border-top: 1px solid #1E2432;">
+              <p style="margin: 0 0 8px; font-size: 13px; color: #718096;">
+                This link will expire in 1 hour for security reasons.
+              </p>
+              <p style="margin: 0; font-size: 13px; color: #718096;">
+                If you didn't request a password reset, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Copyright -->
+        <p style="margin: 32px 0 0; font-size: 12px; color: #4A5568;">
+          &copy; ${new Date().getFullYear()} FORGE. All rights reserved.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+}
+
+export function getPasswordResetEmailText({
+  userName,
+  resetUrl,
+}: {
+  userName: string;
+  resetUrl: string;
+}): string {
+  return `
+Reset your FORGE password
+
+Hi ${userName}, we received a request to reset your FORGE password.
+
+Reset your password: ${resetUrl}
+
+This link will expire in 1 hour for security reasons.
+
+If you didn't request a password reset, you can safely ignore this email.
+
+---
+FORGE - AI-powered program intelligence
+`;
+}

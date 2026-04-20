@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -11,7 +10,6 @@ import {
   ExternalLink,
   Loader2,
   Sparkles,
-  Users,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -225,7 +223,6 @@ function PlanCard({
 }
 
 export default function BillingPage() {
-  const router = useRouter();
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">(
     "monthly"
   );

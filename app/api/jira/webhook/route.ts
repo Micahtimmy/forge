@@ -30,6 +30,15 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("x-atlassian-webhook-signature");
     const webhookSecret = process.env.JIRA_WEBHOOK_SECRET;
 
+    // In production, webhook secret is required
+    if (process.env.NODE_ENV === "production" && !webhookSecret) {
+      console.error("JIRA_WEBHOOK_SECRET is not configured in production");
+      return NextResponse.json(
+        { error: "Webhook not configured" },
+        { status: 401 }
+      );
+    }
+
     // Verify signature if secret is configured
     if (webhookSecret) {
       if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
@@ -90,6 +99,7 @@ export async function POST(req: NextRequest) {
 }
 
 // Atlassian sends a GET request to verify the webhook endpoint
-export async function GET(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_req: NextRequest) {
   return NextResponse.json({ status: "active" });
 }

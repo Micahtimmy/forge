@@ -1,5 +1,3 @@
-import { Inngest } from "inngest";
-
 // Configuration for Inngest
 export const inngestConfig = {
   // Base URL for Inngest events (dev vs prod)

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Plus,
-  Calendar,
   Users,
   GitBranch,
   AlertTriangle,
@@ -197,14 +196,25 @@ export default function HorizonPage() {
   const [newPIName, setNewPIName] = useState("");
   const [newPIIterations, setNewPIIterations] = useState("5");
 
-  const handleCreatePI = () => {
-    // In real app, this would create a PI in the database
-    console.log("Creating PI:", { name: newPIName, iterations: newPIIterations });
-    setIsCreateModalOpen(false);
-    setNewPIName("");
-    setNewPIIterations("5");
-    // Navigate to new PI
-    router.push("/horizon/new-pi");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreatePI = async () => {
+    setIsCreating(true);
+    try {
+      // In real app, this would create a PI in the database and return the ID
+      // For now, generate a temporary ID based on name
+      const tempId = `pi-${newPIName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
+      console.log("Creating PI:", { name: newPIName, iterations: newPIIterations, id: tempId });
+      setIsCreateModalOpen(false);
+      setNewPIName("");
+      setNewPIIterations("5");
+      // Navigate to the created PI
+      router.push(`/horizon/${tempId}`);
+    } catch (error) {
+      console.error("Failed to create PI:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -272,10 +282,10 @@ export default function HorizonPage() {
           </div>
         </div>
         <ModalFooter>
-          <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)}>
+          <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} disabled={isCreating}>
             Cancel
           </Button>
-          <Button onClick={handleCreatePI} disabled={!newPIName}>
+          <Button onClick={handleCreatePI} disabled={!newPIName || isCreating} isLoading={isCreating}>
             Create PI
           </Button>
         </ModalFooter>

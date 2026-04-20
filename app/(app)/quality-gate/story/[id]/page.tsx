@@ -7,22 +7,19 @@ import {
   ArrowLeft,
   ExternalLink,
   RefreshCw,
-  Sparkles,
-  ChevronRight,
   AlertCircle,
   CheckCircle2,
   Lightbulb,
   Copy,
   Check,
 } from "lucide-react";
-import { PageHeaderCompact } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Tabs, TabsListUnderline, TabsTriggerUnderline, TabsContent } from "@/components/ui/tabs";
 import { useToastActions } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { staggerContainer, staggerItem, fadeIn } from "@/lib/motion/variants";
+import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 
 // Mock data - replace with real data fetching
 const mockStory = {
@@ -189,9 +186,13 @@ export default function StoryDetailPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToastActions();
-  const storyId = params.id as string;
   const [isRescoring, setIsRescoring] = useState(false);
   const [activeTab, setActiveTab] = useState("breakdown");
+
+  // TODO: Use storyId to fetch real story data from API instead of mock data
+  const storyId = params.id as string;
+  // Placeholder to mark storyId as used until real data fetching is implemented
+  void storyId;
 
   const handleRescore = async () => {
     setIsRescoring(true);

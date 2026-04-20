@@ -9,8 +9,6 @@ import {
   Lightbulb,
   Copy,
   Check,
-  User,
-  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScoreRing } from "@/components/ui/score-ring";
@@ -75,6 +73,15 @@ function SuggestionCard({ suggestion }: { suggestion: AISuggestion }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // TODO: Implement Apply to JIRA functionality
+  // This should call an API endpoint that updates the JIRA issue with the improved text
+  // The endpoint needs to be created at /api/jira/apply-suggestion
+  // It should accept: storyId, suggestionType, improvedText
+  // and use the JIRA API to update the appropriate field
+  const handleApplyToJira = () => {
+    console.log("Apply to JIRA - not yet implemented:", suggestion);
+  };
+
   return (
     <div className="p-3 bg-surface-02 rounded-lg border border-border space-y-2">
       <div className="flex items-center gap-2 text-xs">
@@ -103,7 +110,7 @@ function SuggestionCard({ suggestion }: { suggestion: AISuggestion }) {
             </>
           )}
         </Button>
-        <Button variant="ghost" size="xs">
+        <Button variant="ghost" size="xs" onClick={handleApplyToJira}>
           Apply to JIRA
         </Button>
       </div>
@@ -244,10 +251,25 @@ export function StoryCard({ story, onViewDetails, delay = 0 }: StoryCardProps) {
                 <Button variant="secondary" size="sm" onClick={onViewDetails}>
                   View Full Analysis
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  Open in JIRA
-                </Button>
+                {story.jiraKey && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // JIRA browse URL format: https://<domain>.atlassian.net/browse/<KEY>
+                      // Since we do not store the JIRA domain on the story, we use a relative path
+                      // that the JIRA integration should resolve, or open a configured base URL
+                      // For now, attempt to open using a common pattern - the actual domain
+                      // should come from workspace settings in production
+                      const jiraUrl = `https://jira.atlassian.com/browse/${story.jiraKey}`;
+                      window.open(jiraUrl, "_blank", "noopener,noreferrer");
+                    }}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Open in JIRA
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>

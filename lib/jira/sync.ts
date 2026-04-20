@@ -1,9 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { getJiraClientForWorkspace } from "./auth";
-import { JiraClient, JiraApiError } from "./client";
+import { JiraApiError } from "./client";
 import type {
   JiraIssue,
-  JiraSprint,
   JiraDocument,
   JiraDocumentNode,
   NormalizedJiraStory,

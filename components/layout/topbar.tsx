@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -9,11 +9,22 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronRight,
+  Settings,
+  LogOut,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Tooltip } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown";
 import { formatDistanceToNow } from "date-fns";
 
 // Map paths to breadcrumb labels
@@ -38,7 +49,7 @@ function Breadcrumbs() {
   const items: Array<{ label: string; href: string }> = [];
   let currentPath = "";
 
-  segments.forEach((segment, index) => {
+  segments.forEach((segment) => {
     currentPath += `/${segment}`;
     const label = pathLabels[currentPath] || segment;
     items.push({ label, href: currentPath });
@@ -129,8 +140,35 @@ function SyncIndicator() {
   );
 }
 
+// Mock notifications for demo
+const mockNotifications = [
+  {
+    id: "1",
+    title: "Sprint 22 scored",
+    description: "AI analysis completed for 24 stories",
+    time: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 min ago
+    read: false,
+  },
+  {
+    id: "2",
+    title: "JIRA sync complete",
+    description: "12 stories updated from JIRA",
+    time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+    read: true,
+  },
+  {
+    id: "3",
+    title: "New team member",
+    description: "Sarah joined the workspace",
+    time: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+    read: true,
+  },
+];
+
 export function Topbar() {
+  const router = useRouter();
   const { sidebarExpanded, setCommandPaletteOpen } = useAppStore();
+  const unreadCount = mockNotifications.filter((n) => !n.read).length;
 
   return (
     <header
@@ -172,24 +210,97 @@ export function Topbar() {
         </Tooltip>
 
         {/* Notifications */}
-        <Tooltip content="Notifications">
-          <button
-            className={cn(
-              "relative p-2 rounded-md",
-              "text-text-secondary hover:text-text-primary hover:bg-surface-03",
-              "transition-colors"
+        <DropdownMenu>
+          <Tooltip content="Notifications">
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "relative p-2 rounded-md",
+                  "text-text-secondary hover:text-text-primary hover:bg-surface-03",
+                  "transition-colors"
+                )}
+              >
+                <Bell className="w-5 h-5" />
+                {/* Notification dot */}
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-coral rounded-full" />
+                )}
+              </button>
+            </DropdownMenuTrigger>
+          </Tooltip>
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {mockNotifications.length === 0 ? (
+              <div className="px-2 py-4 text-center text-sm text-text-tertiary">
+                No notifications
+              </div>
+            ) : (
+              mockNotifications.map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className="flex flex-col items-start gap-1 py-2"
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <span
+                      className={cn(
+                        "text-sm font-medium",
+                        notification.read ? "text-text-secondary" : "text-text-primary"
+                      )}
+                    >
+                      {notification.title}
+                    </span>
+                    {!notification.read && (
+                      <span className="w-1.5 h-1.5 bg-iris rounded-full ml-auto" />
+                    )}
+                  </div>
+                  <span className="text-xs text-text-tertiary">
+                    {notification.description}
+                  </span>
+                  <span className="text-xs text-text-tertiary">
+                    {formatDistanceToNow(new Date(notification.time), { addSuffix: true })}
+                  </span>
+                </DropdownMenuItem>
+              ))
             )}
-          >
-            <Bell className="w-5 h-5" />
-            {/* Notification dot */}
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-coral rounded-full" />
-          </button>
-        </Tooltip>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="justify-center text-iris"
+              onClick={() => router.push("/notifications")}
+            >
+              View all notifications
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User Menu */}
-        <button className="p-1 rounded-md hover:bg-surface-03 transition-colors">
-          <Avatar size="sm" alt="User" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-1 rounded-md hover:bg-surface-03 transition-colors">
+              <Avatar size="sm" alt="User" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-coral focus:text-coral"
+              onClick={() => router.push("/login")}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

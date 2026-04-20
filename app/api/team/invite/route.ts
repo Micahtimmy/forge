@@ -8,6 +8,8 @@ import {
   getTeamInviteEmailHtml,
   getTeamInviteEmailText,
 } from "@/lib/email/resend";
+import { authenticateRequest, requireRole } from "@/lib/api/auth";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 
 const inviteSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -22,22 +24,36 @@ interface InvitationRecord {
   created_at: string;
 }
 
+// Rate limit config for team invites (sends emails)
+const INVITE_RATE_LIMIT = {
+  limit: 10,
+  windowSeconds: 300, // 5 minutes
+  identifier: "team-invite",
+};
+
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate and check permissions
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
+    }
+
+    // Only admins and owners can send invites
+    const roleCheck = requireRole(auth.context, "admin");
+    if (roleCheck) {
+      return roleCheck;
+    }
+
+    // Rate limiting - prevents email spam
+    const rateLimit = checkRateLimit(req, auth.context.user.id, INVITE_RATE_LIMIT);
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
     const supabase = await createSupabaseServerClient();
     const untypedSupabase = createUntypedServerClient();
-
-    // Get current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
+    const user = auth.context.user;
 
     // Get workspace
     const workspace = await getUserWorkspace(user.id);
@@ -187,19 +203,27 @@ export async function POST(req: NextRequest) {
 // Resend an invitation
 export async function PATCH(req: NextRequest) {
   try {
+    // Authenticate and check permissions
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
+    }
+
+    // Only admins and owners can resend invites
+    const roleCheck = requireRole(auth.context, "admin");
+    if (roleCheck) {
+      return roleCheck;
+    }
+
+    // Rate limiting
+    const rateLimit = checkRateLimit(req, auth.context.user.id, INVITE_RATE_LIMIT);
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
     const supabase = await createSupabaseServerClient();
     const untypedSupabase = createUntypedServerClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
+    const user = auth.context.user;
 
     const workspace = await getUserWorkspace(user.id);
 

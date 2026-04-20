@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Story, StoryWithScore } from "@/types/story";
+import type { StoryWithScore } from "@/types/story";
 
 interface StoriesFilters {
   sprintId?: string;

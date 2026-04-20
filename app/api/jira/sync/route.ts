@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { syncStoriesFromJira, syncSprintsFromJira } from "@/lib/jira/sync";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
 const syncSchema = z.object({
   projectKey: z.string(),
@@ -21,6 +22,12 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting - JIRA sync is expensive
+    const rateLimit = checkRateLimit(req, user.id, RATE_LIMITS.jiraSync);
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
     }
 
     // Get user's workspace

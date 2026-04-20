@@ -53,7 +53,22 @@
       "Bash(gh repo *)",
       "Bash(vercel *)",
       "Bash(npx supabase *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Bash(python -m json.tool)",
+      "Bash(cat supabase/migrations/*.sql)",
+      "Bash(xargs grep *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(cat .env.local.example)",
+      "Bash(cat .env.example)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx next *)",
+      "Bash(npx eslint *)",
+      "Bash(cat)",
+      "Bash(bash /tmp/lint_fixes.sh)"
     ]
   }
 }

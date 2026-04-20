@@ -13,14 +13,10 @@ export const scheduledJiraSync = inngest.createFunction(
     },
     triggers: [{ cron: "*/15 * * * *" }],
   },
-  async ({ step }) => {
-    // In production, this would get active workspaces from the database
-    // For now, just log that the sync would run
-    console.log("[FORGE] Scheduled JIRA sync triggered");
-
-    // This function would iterate through all workspaces with JIRA connections
-    // and trigger individual sync events for each
-    return { status: "skipped", reason: "No workspaces configured" };
+  async ({ step: _step }) => {
+    // TODO: Implement scheduled sync that iterates through all workspaces with JIRA connections
+    // For now, return skipped status
+    return { status: "skipped", reason: "Scheduled sync not yet implemented" };
   }
 );
 

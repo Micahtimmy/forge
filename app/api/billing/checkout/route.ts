@@ -5,13 +5,20 @@ import {
   initializeTransaction,
   createCustomer,
   PLANS,
-  type PlanId,
 } from "@/lib/billing/paystack";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 
 const checkoutSchema = z.object({
   planId: z.enum(["pro", "team"]),
   interval: z.enum(["monthly", "yearly"]),
 });
+
+// Rate limit config for checkout (prevents payment abuse)
+const CHECKOUT_RATE_LIMIT = {
+  limit: 5,
+  windowSeconds: 300, // 5 minutes
+  identifier: "billing-checkout",
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +34,12 @@ export async function POST(req: NextRequest) {
         { success: false, error: "Not authenticated" },
         { status: 401 }
       );
+    }
+
+    // Rate limiting - prevents checkout abuse
+    const rateLimit = checkRateLimit(req, user.id, CHECKOUT_RATE_LIMIT);
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
     }
 
     const body = await req.json();

@@ -9,7 +9,6 @@ import {
   List,
   Zap,
   RefreshCw,
-  ChevronDown,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StoryCard } from "@/components/quality-gate/story-card";
@@ -17,6 +16,7 @@ import { SprintHealthSnapshot } from "@/components/quality-gate/sprint-health-sn
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToastActions } from "@/components/ui/toast";
 import {
   Select,
   SelectTrigger,
@@ -182,6 +182,7 @@ const sprints = [
 ];
 
 export default function QualityGatePage() {
+  const toast = useToastActions();
   const {
     searchQuery,
     setSearchQuery,
@@ -194,7 +195,8 @@ export default function QualityGatePage() {
   } = useQualityGateStore();
 
   const [selectedSprint, setSelectedSprint] = useState(sprints[0].id);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Filter stories
   const filteredStories = mockStories.filter((story) => {
@@ -241,9 +243,55 @@ export default function QualityGatePage() {
 
   const handleScoreSprint = async () => {
     setIsScoring(true);
-    // Simulate scoring
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsScoring(false);
+    try {
+      // Simulate scoring - in real app, this would call the AI scoring API
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      toast.success(
+        "Sprint scored",
+        `Successfully analyzed ${mockStories.length} stories`
+      );
+    } catch {
+      toast.error(
+        "Scoring failed",
+        "Unable to score stories. Please try again."
+      );
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
+  const handleSyncJira = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/api/jira/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectKey: "PROJ", // In real app, this would come from workspace settings
+          fullSync: false,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Sync failed");
+      }
+
+      toast.success(
+        "JIRA sync complete",
+        `Synced ${data.stories?.synced ?? 0} stories`
+      );
+    } catch (error) {
+      toast.error(
+        "Sync failed",
+        error instanceof Error ? error.message : "Unable to sync with JIRA"
+      );
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -256,9 +304,11 @@ export default function QualityGatePage() {
             <Button
               variant="secondary"
               size="sm"
-              leftIcon={<RefreshCw className="w-4 h-4" />}
+              leftIcon={<RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />}
+              onClick={handleSyncJira}
+              disabled={isSyncing}
             >
-              Sync JIRA
+              {isSyncing ? "Syncing..." : "Sync JIRA"}
             </Button>
             <Button
               variant="primary"

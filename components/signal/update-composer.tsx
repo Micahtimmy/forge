@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Send,
   Loader2,
@@ -10,13 +10,14 @@ import {
   Mail,
   MessageSquare,
   FileText,
-  Download,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToastActions } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
 import { LabeledSlider } from "@/components/ui/slider";
-import { Checkbox, CheckboxWithLabel } from "@/components/ui/checkbox";
+import { CheckboxWithLabel } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ interface UpdateComposerProps {
 const allAudiences: AudienceType[] = ["executive", "team", "client", "board"];
 
 export function UpdateComposer({ context, onSend }: UpdateComposerProps) {
+  const toast = useToastActions();
   const [selectedAudiences, setSelectedAudiences] = useState<AudienceType[]>([
     "executive",
     "team",
@@ -54,6 +56,7 @@ export function UpdateComposer({ context, onSend }: UpdateComposerProps) {
   const [additionalContext, setAdditionalContext] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingAudience, setGeneratingAudience] = useState<AudienceType | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<AudienceType, string>>({
     executive: "",
     team: "",
@@ -75,6 +78,9 @@ export function UpdateComposer({ context, onSend }: UpdateComposerProps) {
     if (selectedAudiences.length === 0) return;
 
     setIsGenerating(true);
+    setGenerationError(null);
+    let successCount = 0;
+    const failedAudiences: string[] = [];
 
     for (const audience of selectedAudiences) {
       setGeneratingAudience(audience);
@@ -94,10 +100,13 @@ export function UpdateComposer({ context, onSend }: UpdateComposerProps) {
           }),
         });
 
-        if (!response.ok) throw new Error("Failed to generate");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server error (${response.status})`);
+        }
 
         const reader = response.body?.getReader();
-        if (!reader) throw new Error("No reader");
+        if (!reader) throw new Error("Unable to read response stream");
 
         const decoder = new TextDecoder();
         let content = "";
@@ -117,19 +126,32 @@ export function UpdateComposer({ context, onSend }: UpdateComposerProps) {
                   content += data.chunk;
                   setDrafts((prev) => ({ ...prev, [audience]: content }));
                 }
+                if (data.error) {
+                  throw new Error(data.error);
+                }
               } catch {
-                // Skip invalid JSON
+                // Skip invalid JSON chunks
               }
             }
           }
         }
+        successCount++;
       } catch (error) {
         console.error(`Failed to generate ${audience} draft:`, error);
+        failedAudiences.push(audienceLabels[audience]);
       }
     }
 
     setIsGenerating(false);
     setGeneratingAudience(null);
+
+    if (failedAudiences.length > 0) {
+      const errorMsg = `Failed to generate draft for: ${failedAudiences.join(", ")}`;
+      setGenerationError(errorMsg);
+      toast.error("Generation failed", errorMsg);
+    } else if (successCount > 0) {
+      toast.success("Drafts generated", `Successfully created ${successCount} draft(s)`);
+    }
   };
 
   const copyToClipboard = async (audience: AudienceType) => {
@@ -236,6 +258,14 @@ export function UpdateComposer({ context, onSend }: UpdateComposerProps) {
             rows={3}
           />
         </div>
+
+        {/* Error Display */}
+        {generationError && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-coral-dim border border-coral-border text-coral text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{generationError}</span>
+          </div>
+        )}
 
         {/* Generate Button */}
         <Button

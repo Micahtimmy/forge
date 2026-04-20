@@ -8,7 +8,7 @@ export interface SliderProps
   showValue?: boolean;
 }
 
-export function Slider({ className, showValue, ...props }: SliderProps) {
+export function Slider({ className, ...props }: SliderProps) {
   return (
     <SliderPrimitive.Root
       className={cn(

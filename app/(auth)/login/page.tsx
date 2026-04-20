@@ -20,6 +20,25 @@ function LoginForm() {
 
   const redirectTo = searchParams.get("redirect") || "/";
   const authError = searchParams.get("error");
+  const authErrorDescription = searchParams.get("error_description");
+
+  // Map error codes to user-friendly messages
+  const getErrorMessage = (error: string | null, description: string | null) => {
+    if (!error) return null;
+
+    const errorMessages: Record<string, string> = {
+      "auth_callback_error": "Authentication failed. Please try again.",
+      "missing_auth_params": "Invalid authentication link. Please try signing in again.",
+      "verification_failed": description || "Email verification failed. The link may have expired.",
+      "confirmation_failed": description || "Email confirmation failed. Please request a new link.",
+      "missing_token": "Invalid confirmation link. Please request a new one.",
+      "access_denied": "Access was denied. Please try again.",
+    };
+
+    return errorMessages[error] || description || "Authentication failed. Please try again.";
+  };
+
+  const errorMessage = getErrorMessage(authError, authErrorDescription);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -77,10 +96,10 @@ function LoginForm() {
       </div>
 
       {/* Error Display */}
-      {(error || authError) && (
+      {(error || errorMessage) && (
         <div className="flex items-center gap-2 p-3 rounded-md bg-coral-dim border border-coral-border text-coral text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{error || "Authentication failed. Please try again."}</span>
+          <span>{error || errorMessage}</span>
         </div>
       )}
 

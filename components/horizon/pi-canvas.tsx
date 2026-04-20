@@ -147,7 +147,8 @@ export function PICanvas({ canvasData, onCanvasChange }: PICanvasProps) {
     [canvasData]
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes as unknown as Node[]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [nodes, _setNodes, onNodesChange] = useNodesState(initialData.nodes as unknown as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges as unknown as Edge[]);
 
   const onConnect = useCallback(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { ResponsiveContainer } from "recharts";
 
 interface ChartContainerProps {
@@ -17,17 +17,18 @@ interface ChartContainerProps {
  */
 const DEFAULT_SIZE = "100%" as const;
 
+// Use useSyncExternalStore to detect client-side mount without useState/useEffect
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function ChartContainer({
   children,
   height = DEFAULT_SIZE,
   width = DEFAULT_SIZE,
   className,
 }: ChartContainerProps) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   if (!isMounted) {
     return (

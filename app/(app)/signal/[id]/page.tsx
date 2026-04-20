@@ -16,11 +16,9 @@ import {
   MessageSquare,
   Plus,
   MoreHorizontal,
-  ExternalLink,
   FileText,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import { PageHeaderCompact } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -35,7 +33,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown";
 import { useToastActions } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import { audienceLabels, type AudienceType } from "@/types/signal";
 
@@ -163,7 +160,11 @@ export default function SignalDetailPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToastActions();
+
+  // TODO: Use updateId to fetch real signal data from API instead of mock data
   const updateId = params.id as string;
+  // Placeholder to mark updateId as used until real data fetching is implemented
+  void updateId;
 
   const [activeTab, setActiveTab] = useState<AudienceType | "decisions">(
     mockUpdate.audiences[0]

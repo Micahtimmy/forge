@@ -1,6 +1,6 @@
 import { inngest } from "../client";
 import { scoreStory } from "@/lib/ai/score-story";
-import { getStoriesByWorkspace } from "@/lib/db/queries/stories";
+import { getStoriesByWorkspace, getStoryById } from "@/lib/db/queries/stories";
 import { upsertStoryScore } from "@/lib/db/queries/scores";
 import { PROMPT_VERSION } from "@/lib/ai/prompts/score-story";
 
@@ -184,8 +184,4 @@ export const scoreSprintStories = inngest.createFunction(
   }
 );
 
-// Helper - would be imported from queries in real implementation
-async function getStoryById(workspaceId: string, storyId: string) {
-  const stories = await getStoriesByWorkspace(workspaceId, { limit: 1 });
-  return stories.find((s) => s.id === storyId) || null;
-}
+// getStoryById is now imported from @/lib/db/queries/stories

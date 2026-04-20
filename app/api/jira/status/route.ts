@@ -4,7 +4,8 @@ import { getJiraConnectionStatus } from "@/lib/jira/auth";
 import { getJiraSyncStatus } from "@/lib/jira/sync";
 
 // Get JIRA connection status
-export async function GET(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_req: NextRequest) {
   try {
     // Get user session
     const supabase = await createSupabaseServerClient();

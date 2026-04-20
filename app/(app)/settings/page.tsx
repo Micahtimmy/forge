@@ -6,9 +6,7 @@ import {
   Link2,
   Users,
   Sliders,
-  Bell,
   CreditCard,
-  Shield,
   ChevronRight,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -41,17 +39,6 @@ const settingsSections = [
         label: "Quality Rubrics",
         description: "Configure story scoring rubrics",
         href: "/quality-gate/rubrics",
-      },
-    ],
-  },
-  {
-    title: "Preferences",
-    items: [
-      {
-        icon: Bell,
-        label: "Notifications",
-        description: "Email and Slack notification settings",
-        href: "/settings/notifications",
       },
     ],
   },

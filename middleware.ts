@@ -37,8 +37,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/login", "/signup", "/forgot-password", "/reset-password"];
+  const publicRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", "/invite"];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+
+  // Auth callback routes - these handle OAuth and email verification
+  const isAuthCallbackRoute = pathname.startsWith("/auth/callback") || pathname.startsWith("/auth/confirm");
 
   // API routes that don't require authentication
   const publicApiRoutes = ["/api/auth", "/api/webhooks"];
@@ -46,6 +49,11 @@ export async function middleware(request: NextRequest) {
 
   // Onboarding route (requires auth but no onboarding check)
   const isOnboardingRoute = pathname.startsWith("/onboarding");
+
+  // Allow auth callback routes (they handle their own logic)
+  if (isAuthCallbackRoute) {
+    return supabaseResponse;
+  }
 
   // Allow public routes and API routes
   if (isPublicRoute || isPublicApiRoute) {

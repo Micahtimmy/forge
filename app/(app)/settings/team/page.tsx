@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -132,26 +132,28 @@ function MemberRow({
   onRemove: () => void;
   onResendInvite: () => void;
 }) {
-  const formatDate = (date: string) => {
+  const formatDate = useCallback((date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-  };
+  }, []);
 
-  // Memoize current time to avoid React Compiler purity issues
-  const now = useMemo(() => Date.now(), []);
-
-  const formatLastActive = (date: string) => {
+  const formatLastActive = useCallback((date: string) => {
+    const now = Date.now();
     const diff = now - new Date(date).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     if (hours < 1) return "Just now";
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d ago`;
-    return formatDate(date);
-  };
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, []);
 
   return (
     <motion.div

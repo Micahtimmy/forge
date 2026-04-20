@@ -297,10 +297,9 @@ export default function RubricsPage() {
   };
 
   const handleDuplicateRubric = (rubric: Rubric) => {
-    const timestamp = performance.now().toString(36);
     const duplicate: Rubric = {
       ...rubric,
-      id: `rubric-${timestamp}`,
+      id: `rubric-${crypto.randomUUID()}`,
       name: `${rubric.name} (Copy)`,
       isDefault: false,
       createdAt: new Date().toISOString(),

@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Link2,
   CheckCircle2,
-  AlertCircle,
   RefreshCw,
   ExternalLink,
   Trash2,
@@ -15,11 +14,9 @@ import { useRouter } from "next/navigation";
 import { PageHeaderCompact } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input, Label } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useToastActions } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import { fadeIn } from "@/lib/motion/variants";
 
 export default function JiraSettingsPage() {

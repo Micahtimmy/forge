@@ -41,6 +41,9 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   const { email, password, fullName } = validated.data;
   const supabase = await createSupabaseServerClient();
 
+  // Use origin-relative URL that Supabase will use as the base
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -48,7 +51,8 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
       data: {
         full_name: fullName,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      // Supabase will append token_hash and type to this URL
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
@@ -114,11 +118,16 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
 
 export async function signInWithGoogle(): Promise<AuthResult> {
   const supabase = await createSupabaseServerClient();
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: `${siteUrl}/auth/callback`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
     },
   });
 
@@ -141,11 +150,12 @@ export async function signInWithGoogle(): Promise<AuthResult> {
 
 export async function signInWithGitHub(): Promise<AuthResult> {
   const supabase = await createSupabaseServerClient();
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
@@ -184,8 +194,11 @@ export async function resetPassword(formData: FormData): Promise<AuthResult> {
 
   const supabase = await createSupabaseServerClient();
 
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
+    // Password reset should go through auth/callback which will then redirect to reset-password
+    redirectTo: `${siteUrl}/auth/callback`,
   });
 
   if (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,7 +11,6 @@ import {
   Send,
   Map,
   Settings2,
-  FileText,
   Plus,
   RefreshCw,
   Zap,
@@ -34,11 +33,15 @@ export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen } = useAppStore();
   const [search, setSearch] = useState("");
 
-  // Reset search when closing
+  // Track previous open state and reset search when closing
+  const prevOpenRef = useRef(commandPaletteOpen);
   useEffect(() => {
-    if (!commandPaletteOpen) {
-      setSearch("");
+    if (prevOpenRef.current && !commandPaletteOpen) {
+      // Defer setState to after render
+      const timeout = setTimeout(() => setSearch(""), 0);
+      return () => clearTimeout(timeout);
     }
+    prevOpenRef.current = commandPaletteOpen;
   }, [commandPaletteOpen]);
 
   // Close on escape

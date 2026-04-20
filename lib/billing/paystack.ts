@@ -3,6 +3,8 @@
  * Nigerian payment processor for subscriptions
  */
 
+import { createHmac } from "crypto";
+
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
 
@@ -310,9 +312,7 @@ export function verifyWebhookSignature(
 ): boolean {
   if (!PAYSTACK_SECRET_KEY) return false;
 
-  const crypto = require("crypto");
-  const hash = crypto
-    .createHmac("sha512", PAYSTACK_SECRET_KEY)
+  const hash = createHmac("sha512", PAYSTACK_SECRET_KEY)
     .update(payload)
     .digest("hex");
 

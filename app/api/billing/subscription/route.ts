@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserWorkspace } from "@/lib/db/queries/dashboard";
-import { PLANS, type PlanId } from "@/lib/billing/paystack";
+import { type PlanId } from "@/lib/billing/paystack";
 
 export interface SubscriptionData {
   plan: PlanId;

@@ -39,13 +39,11 @@ export function PageHeader({
 export function PageHeaderCompact({
   title,
   subtitle,
-  backHref,
   actions,
   className,
 }: {
   title: string;
   subtitle?: string;
-  backHref?: string;
   actions?: React.ReactNode;
   className?: string;
 }) {
