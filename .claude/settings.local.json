@@ -68,7 +68,8 @@
       "Bash(npx next *)",
       "Bash(npx eslint *)",
       "Bash(cat)",
-      "Bash(bash /tmp/lint_fixes.sh)"
+      "Bash(bash /tmp/lint_fixes.sh)",
+      "Bash(git commit *)"
     ]
   }
 }
