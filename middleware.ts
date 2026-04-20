@@ -87,8 +87,13 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
+    // If we got an RLS error (not a "not found" error), allow access
+    // This prevents redirect loops when RLS policies aren't fully propagated
+    const isRLSError = profileError && profileError.code !== "PGRST116";
+
     // Redirect to onboarding if user doesn't exist in users table or has no workspace
-    if (profileError || !profile || !profile.workspace_id) {
+    // But only if it's a genuine "not found" case, not an RLS permission error
+    if (!isRLSError && (profileError || !profile || !profile.workspace_id)) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
       return NextResponse.redirect(url);

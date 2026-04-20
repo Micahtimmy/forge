@@ -1,14 +1,13 @@
 # FORGE — Product Requirements Document
 **Version:** 1.0.0  
 **Status:** Approved for Development  
-**Product Lead:** [Your Name]  
+**Product Lead:** Micah Timileyin
 **Last Updated:** April 2026  
 **Classification:** Internal — Confidential
 
 ---
 
 ## Table of Contents
-
 1. [Executive Summary](#1-executive-summary)
 2. [The Problem — Empathy-Led Research](#2-the-problem)
 3. [User Personas](#3-user-personas)

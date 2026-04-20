@@ -61,8 +61,8 @@ export default function OnboardingPage() {
         if (result.success) {
           setStep("complete");
           setTimeout(() => {
-            router.push("/");
-            router.refresh();
+            // Use window.location for hard refresh to ensure middleware sees fresh auth state
+            window.location.href = "/";
           }, 2000);
         } else {
           setError(result.error || "Failed to complete setup. Please try again.");
