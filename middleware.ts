@@ -57,8 +57,11 @@ export async function middleware(request: NextRequest) {
 
   // Allow public routes and API routes
   if (isPublicRoute || isPublicApiRoute) {
-    // If user is logged in and tries to access auth pages, redirect to dashboard
-    if (user && isPublicRoute) {
+    // If user is logged in and tries to access auth pages (not demo), redirect to dashboard
+    const isAuthPage = ["/login", "/signup", "/forgot-password", "/reset-password"].some(
+      (route) => pathname.startsWith(route)
+    );
+    if (user && isAuthPage) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
