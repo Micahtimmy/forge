@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState } from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -9,7 +8,6 @@ import {
   GitBranch,
   AlertTriangle,
   Target,
-  Calendar,
   ChevronDown,
   ChevronRight,
   CheckCircle2,
@@ -20,6 +18,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsListUnderline, TabsTriggerUnderline, TabsContent } from "@/components/ui/tabs";
+import { InfoPanel } from "@/components/ui/info-tip";
 import { cn } from "@/lib/utils";
 import { DEMO_PIS } from "@/lib/demo/mock-data";
 import { format } from "date-fns";
@@ -102,7 +101,7 @@ function RiskRow({ risk }: { risk: (typeof DEMO_PIS)[0]["risks"][0] }) {
     low: { color: "text-jade", bg: "bg-jade-dim" },
   };
 
-  const config = severityConfig[risk.severity] || severityConfig.medium;
+  void severityConfig;
 
   return (
     <div className="bg-surface-01 border border-border rounded-lg p-4">
@@ -255,6 +254,9 @@ export default function DemoPIDetailPage({
           <TabsTriggerUnderline value="canvas">
             Canvas
           </TabsTriggerUnderline>
+          <TabsTriggerUnderline value="capacity">
+            Capacity
+          </TabsTriggerUnderline>
           <TabsTriggerUnderline value="dependencies">
             Dependencies
             {(atRiskDeps > 0 || openDeps > 0) && (
@@ -278,6 +280,9 @@ export default function DemoPIDetailPage({
 
         {/* Canvas Tab */}
         <TabsContent value="canvas" className="mt-6">
+          <div className="mb-4">
+            <InfoPanel termKey="piObjective" />
+          </div>
           <div className="space-y-4">
             {/* Iteration Headers */}
             <div className="flex gap-4 overflow-x-auto pb-2">
@@ -350,8 +355,83 @@ export default function DemoPIDetailPage({
           </div>
         </TabsContent>
 
+        {/* Capacity Tab */}
+        <TabsContent value="capacity" className="mt-6">
+          <div className="bg-surface-01 border border-border rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-text-primary mb-4">
+              Team Capacity Model
+            </h2>
+            <div className="space-y-4">
+              {pi.teams.map((team) => {
+                const teamFeatures = pi.features.filter((f) => f.team === team.id);
+                const allocated = teamFeatures.reduce((sum, f) => sum + f.points, 0);
+                const utilization = Math.round((allocated / team.capacity) * 100);
+                const isOverCapacity = utilization > 100;
+
+                return (
+                  <div key={team.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: team.color }}
+                        />
+                        <span className="text-sm font-medium text-text-primary">
+                          {team.name}
+                        </span>
+                      </div>
+                      <span className="text-sm font-mono text-text-secondary">
+                        {allocated}/{team.capacity} pts ({utilization}%)
+                      </span>
+                    </div>
+                    <div className="h-2 bg-surface-03 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          isOverCapacity ? "bg-coral" : utilization > 85 ? "bg-amber" : "bg-jade"
+                        )}
+                        style={{ width: `${Math.min(utilization, 100)}%` }}
+                      />
+                    </div>
+                    {isOverCapacity && (
+                      <p className="text-xs text-coral">Over capacity by {utilization - 100}%</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-border">
+              <h3 className="text-sm font-medium text-text-primary mb-3">Capacity Summary</h3>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold font-mono text-text-primary">
+                    {pi.teams.reduce((sum, t) => sum + t.capacity, 0)}
+                  </div>
+                  <div className="text-xs text-text-tertiary">Total Capacity</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold font-mono text-text-primary">
+                    {pi.features.reduce((sum, f) => sum + f.points, 0)}
+                  </div>
+                  <div className="text-xs text-text-tertiary">Allocated</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold font-mono text-jade">
+                    {pi.teams.reduce((sum, t) => sum + t.capacity, 0) - pi.features.reduce((sum, f) => sum + f.points, 0)}
+                  </div>
+                  <div className="text-xs text-text-tertiary">Available</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
         {/* Dependencies Tab */}
         <TabsContent value="dependencies" className="mt-6">
+          <div className="mb-4">
+            <InfoPanel termKey="dependency" />
+          </div>
           <div className="space-y-3">
             {pi.dependencies.length === 0 ? (
               <div className="text-center py-12 bg-surface-01 border border-border rounded-lg">

@@ -40,7 +40,7 @@ const TEAM_SIZES = [
 type Step = "welcome" | "workspace" | "role" | "complete";
 
 export default function OnboardingPage() {
-  const router = useRouter();
+  void useRouter;
   const [isPending, startTransition] = useTransition();
   const [step, setStep] = useState<Step>("welcome");
   const [workspaceName, setWorkspaceName] = useState("");

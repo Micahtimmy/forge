@@ -1,6 +1,7 @@
 import { inngest } from "../client";
 import { syncStoriesFromJira, syncSprintsFromJira } from "@/lib/jira/sync";
 import { getJiraClientForWorkspace } from "@/lib/jira/auth";
+import * as Sentry from "@sentry/nextjs";
 
 // Scheduled JIRA sync - runs every 15 minutes per workspace
 export const scheduledJiraSync = inngest.createFunction(
@@ -13,7 +14,7 @@ export const scheduledJiraSync = inngest.createFunction(
     },
     triggers: [{ cron: "*/15 * * * *" }],
   },
-  async ({ step: _step }) => {
+  async () => {
     // TODO: Implement scheduled sync that iterates through all workspaces with JIRA connections
     // For now, return skipped status
     return { status: "skipped", reason: "Scheduled sync not yet implemented" };
@@ -41,10 +42,11 @@ export const jiraSync = inngest.createFunction(
     const { workspaceId, projectKey, boardId, fullSync, triggeredBy } =
       event.data;
 
-    console.log("[FORGE] JIRA sync started", {
-      workspaceId,
-      projectKey,
-      triggeredBy,
+    Sentry.addBreadcrumb({
+      category: "jira-sync",
+      message: "JIRA sync started",
+      data: { workspaceId, projectKey, triggeredBy },
+      level: "info",
     });
 
     // Check if workspace has JIRA connection
@@ -53,7 +55,10 @@ export const jiraSync = inngest.createFunction(
     });
 
     if (!client) {
-      console.warn("[FORGE] No JIRA connection found", { workspaceId });
+      Sentry.captureMessage("No JIRA connection found", {
+        level: "warning",
+        extra: { workspaceId },
+      });
       return { status: "error", reason: "No JIRA connection" };
     }
 
@@ -65,8 +70,9 @@ export const jiraSync = inngest.createFunction(
           maxResults: fullSync ? 500 : 100,
         });
       } catch (error) {
-        console.error("[FORGE] Story sync failed", {
-          error: error instanceof Error ? error.message : "Unknown error",
+        Sentry.captureException(error, {
+          tags: { operation: "story-sync" },
+          extra: { workspaceId, projectKey },
         });
         throw error;
       }
@@ -79,19 +85,25 @@ export const jiraSync = inngest.createFunction(
         try {
           return await syncSprintsFromJira(workspaceId, boardId);
         } catch (error) {
-          console.error("[FORGE] Sprint sync failed", {
-            error: error instanceof Error ? error.message : "Unknown error",
+          Sentry.captureException(error, {
+            tags: { operation: "sprint-sync" },
+            extra: { workspaceId, boardId },
           });
           throw error;
         }
       });
     }
 
-    console.log("[FORGE] JIRA sync completed", {
-      workspaceId,
-      storiesSynced: storyResult.synced,
-      sprintsSynced: sprintResult.synced,
-      errors: storyResult.errors.length + sprintResult.errors.length,
+    Sentry.addBreadcrumb({
+      category: "jira-sync",
+      message: "JIRA sync completed",
+      data: {
+        workspaceId,
+        storiesSynced: storyResult.synced,
+        sprintsSynced: sprintResult.synced,
+        errors: storyResult.errors.length + sprintResult.errors.length,
+      },
+      level: "info",
     });
 
     return {

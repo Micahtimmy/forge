@@ -128,3 +128,88 @@ export function SkeletonTable({
     </div>
   );
 }
+
+export function PageSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn("p-6 space-y-6", className)}>
+      {/* Page header skeleton */}
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-96" />
+      </div>
+
+      {/* Stats row skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="bg-surface-01 border border-border rounded-lg p-4 space-y-3"
+          >
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ))}
+      </div>
+
+      {/* Content area skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <SkeletonStoryCard />
+          <SkeletonStoryCard />
+          <SkeletonStoryCard />
+        </div>
+        <div className="space-y-4">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function StatCardSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "bg-surface-01 border border-border rounded-lg p-4 space-y-2",
+        className
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton variant="circular" width={20} height={20} />
+      </div>
+      <Skeleton className="h-8 w-20" />
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-3 w-12" />
+        <Skeleton className="h-3 w-16" />
+      </div>
+    </div>
+  );
+}
+
+export function ChartSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "bg-surface-01 border border-border rounded-lg p-4",
+        className
+      )}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-8 w-24 rounded-md" />
+      </div>
+      <div className="h-64 flex items-end gap-2">
+        {[75, 45, 60, 80, 35, 55, 90, 40, 65, 50, 70, 85].map((height, i) => (
+          <Skeleton
+            key={i}
+            className="flex-1 rounded-t"
+            style={{ height: `${height}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

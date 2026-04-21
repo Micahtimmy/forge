@@ -3,6 +3,7 @@ import { scoreStory } from "@/lib/ai/score-story";
 import { getStoriesByWorkspace, getStoryById } from "@/lib/db/queries/stories";
 import { upsertStoryScore } from "@/lib/db/queries/scores";
 import { PROMPT_VERSION } from "@/lib/ai/prompts/score-story";
+import * as Sentry from "@sentry/nextjs";
 
 // Score individual stories
 export const scoreStories = inngest.createFunction(
@@ -24,9 +25,11 @@ export const scoreStories = inngest.createFunction(
   async ({ event, step }) => {
     const { workspaceId, storyIds } = event.data;
 
-    console.log("[FORGE] Story scoring started", {
-      workspaceId,
-      storyCount: storyIds.length,
+    Sentry.addBreadcrumb({
+      category: "scoring",
+      message: "Story scoring started",
+      data: { workspaceId, storyCount: storyIds.length },
+      level: "info",
     });
 
     const results: Array<{ storyId: string; score: number | null; error?: string }> = [];
@@ -120,10 +123,11 @@ export const scoreStories = inngest.createFunction(
     const successCount = results.filter((r) => r.score !== null).length;
     const errorCount = results.filter((r) => r.error).length;
 
-    console.log("[FORGE] Story scoring completed", {
-      workspaceId,
-      successCount,
-      errorCount,
+    Sentry.addBreadcrumb({
+      category: "scoring",
+      message: "Story scoring completed",
+      data: { workspaceId, successCount, errorCount },
+      level: "info",
     });
 
     return {
@@ -150,9 +154,11 @@ export const scoreSprintStories = inngest.createFunction(
   async ({ event, step }) => {
     const { workspaceId, sprintId } = event.data;
 
-    console.log("[FORGE] Sprint scoring started", {
-      workspaceId,
-      sprintId,
+    Sentry.addBreadcrumb({
+      category: "scoring",
+      message: "Sprint scoring started",
+      data: { workspaceId, sprintId },
+      level: "info",
     });
 
     // Get all stories in the sprint
@@ -164,7 +170,10 @@ export const scoreSprintStories = inngest.createFunction(
     });
 
     if (stories.length === 0) {
-      console.warn("[FORGE] No stories found in sprint", { workspaceId, sprintId });
+      Sentry.captureMessage("No stories found in sprint", {
+        level: "warning",
+        extra: { workspaceId, sprintId },
+      });
       return { status: "skipped", reason: "No stories in sprint" };
     }
 

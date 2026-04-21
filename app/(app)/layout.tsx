@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { CommandPalette } from "@/components/command-palette";
+import { AIAssistant } from "@/components/ai/ai-assistant";
+import { PageErrorBoundary } from "@/components/ui/error-boundary";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
 
@@ -41,11 +43,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           sidebarExpanded ? "pl-[220px]" : "pl-[56px]"
         )}
       >
-        <div className="p-6">{children}</div>
+        <div className="p-6">
+          <PageErrorBoundary>{children}</PageErrorBoundary>
+        </div>
       </main>
 
       {/* Command Palette */}
       <CommandPalette />
+
+      {/* AI Assistant */}
+      <AIAssistant />
     </div>
   );
 }

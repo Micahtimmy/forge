@@ -15,6 +15,11 @@ import {
   PanelLeft,
   Building2,
   ChevronDown,
+  User,
+  BarChart3,
+  Kanban,
+  Gavel,
+  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
@@ -42,6 +47,11 @@ const navigation: NavGroup[] = [
         href: "/",
         icon: <LayoutDashboard className="w-[18px] h-[18px]" />,
       },
+      {
+        label: "My Work",
+        href: "/my-dashboard",
+        icon: <User className="w-[18px] h-[18px]" />,
+      },
     ],
   },
   {
@@ -53,14 +63,39 @@ const navigation: NavGroup[] = [
         icon: <ShieldCheck className="w-[18px] h-[18px]" />,
       },
       {
+        label: "Story Writer",
+        href: "/quality-gate/writer",
+        icon: <Wand2 className="w-[18px] h-[18px]" />,
+      },
+      {
         label: "Signal",
         href: "/signal",
         icon: <Send className="w-[18px] h-[18px]" />,
       },
       {
+        label: "Decisions",
+        href: "/signal/decisions",
+        icon: <Gavel className="w-[18px] h-[18px]" />,
+      },
+      {
         label: "Horizon",
         href: "/horizon",
         icon: <Map className="w-[18px] h-[18px]" />,
+      },
+      {
+        label: "Kanban",
+        href: "/kanban",
+        icon: <Kanban className="w-[18px] h-[18px]" />,
+      },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      {
+        label: "Analytics",
+        href: "/analytics",
+        icon: <BarChart3 className="w-[18px] h-[18px]" />,
       },
     ],
   },

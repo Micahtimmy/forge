@@ -10,8 +10,12 @@ import {
   Bell,
   Shield,
   CheckCircle2,
-  AlertCircle,
+  Palette,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import { useAppStore } from "@/stores/app-store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +26,7 @@ import { DEMO_TEAM } from "@/lib/demo/mock-data";
 
 const settingsSections = [
   { id: "profile", label: "Profile", icon: User },
+  { id: "appearance", label: "Appearance", icon: Palette },
   { id: "workspace", label: "Workspace", icon: Building2 },
   { id: "team", label: "Team", icon: Users },
   { id: "integrations", label: "Integrations", icon: Link2 },
@@ -33,6 +38,7 @@ const settingsSections = [
 export default function DemoSettingsPage() {
   const toast = useToastActions();
   const [activeSection, setActiveSection] = useState("profile");
+  const { theme, setTheme } = useAppStore();
 
   const handleSave = () => {
     toast.success("Settings saved", "Your changes have been saved");
@@ -92,6 +98,66 @@ export default function DemoSettingsPage() {
                   <Input defaultValue="Scrum Master" disabled />
                 </div>
                 <Button onClick={handleSave}>Save Changes</Button>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "appearance" && (
+            <div className="bg-surface-01 border border-border rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-text-primary mb-4">Appearance</h2>
+              <div className="space-y-6">
+                <div>
+                  <Label>Theme</Label>
+                  <p className="text-sm text-text-tertiary mb-3">
+                    Select your preferred color theme
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(["light", "dark", "system"] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setTheme(t)}
+                        className={cn(
+                          "flex flex-col items-center gap-2 p-4 rounded-lg border transition-all",
+                          theme === t
+                            ? "border-iris bg-iris-dim"
+                            : "border-border hover:border-border-strong"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center",
+                          t === "light" ? "bg-white border border-border" :
+                          t === "dark" ? "bg-[#080C14]" : "bg-gradient-to-br from-white to-[#080C14]"
+                        )}>
+                          {t === "light" && <Sun className="w-5 h-5 text-amber" />}
+                          {t === "dark" && <Moon className="w-5 h-5 text-iris" />}
+                          {t === "system" && <Monitor className="w-5 h-5 text-text-secondary" />}
+                        </div>
+                        <span className="text-sm font-medium text-text-primary capitalize">{t}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label>Interface Density</Label>
+                  <p className="text-sm text-text-tertiary mb-3">
+                    Choose how compact the interface appears
+                  </p>
+                  <div className="flex gap-2">
+                    {["Comfortable", "Compact"].map((density) => (
+                      <button
+                        key={density}
+                        className={cn(
+                          "px-4 py-2 rounded-md text-sm border transition-colors",
+                          density === "Comfortable"
+                            ? "border-iris bg-iris-dim text-iris"
+                            : "border-border hover:border-border-strong text-text-secondary"
+                        )}
+                      >
+                        {density}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}

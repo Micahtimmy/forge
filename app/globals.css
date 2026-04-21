@@ -4,7 +4,9 @@
    FORGE Design System — CSS Custom Properties
    ============================================ */
 
-:root {
+/* ━━━━━━━━━━ DARK THEME (Default) ━━━━━━━━━━ */
+:root,
+[data-theme="dark"] {
   /* ━━━━━━━━━━ BACKGROUNDS ━━━━━━━━━━ */
   --color-canvas: #080C14;
   --color-surface-01: #0D1220;
@@ -56,6 +58,103 @@
   --gradient-canvas: linear-gradient(180deg, #0A0F1A 0%, #080C14 100%);
   --gradient-card-hover: linear-gradient(135deg, rgba(124, 106, 247, 0.05) 0%, transparent 100%);
 
+  /* ━━━━━━━━━━ SHADOWS ━━━━━━━━━━ */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  /* Glow shadows */
+  --shadow-iris: 0 0 24px rgba(124, 106, 247, 0.3);
+  --shadow-jade: 0 0 24px rgba(61, 214, 140, 0.25);
+  --shadow-coral: 0 0 24px rgba(240, 113, 75, 0.25);
+  --shadow-amber: 0 0 24px rgba(245, 166, 35, 0.2);
+
+  /* Scrollbar */
+  --scrollbar-track: var(--color-surface-01);
+  --scrollbar-thumb: var(--color-border-strong);
+  --scrollbar-thumb-hover: var(--color-text-tertiary);
+
+  /* Glass panel */
+  --glass-bg: rgba(13, 18, 32, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.06);
+}
+
+/* ━━━━━━━━━━ LIGHT THEME ━━━━━━━━━━ */
+[data-theme="light"] {
+  /* ━━━━━━━━━━ BACKGROUNDS ━━━━━━━━━━ */
+  --color-canvas: #F8F9FC;
+  --color-surface-01: #FFFFFF;
+  --color-surface-02: #F3F4F8;
+  --color-surface-03: #EBEDF2;
+  --color-surface-04: #E2E5EC;
+
+  /* ━━━━━━━━━━ BORDERS ━━━━━━━━━━ */
+  --color-border: #E2E5EC;
+  --color-border-strong: #CBD0DB;
+  --color-border-subtle: #F0F1F5;
+
+  /* ━━━━━━━━━━ TEXT ━━━━━━━━━━ */
+  --color-text-primary: #1A1F2E;
+  --color-text-secondary: #5A6478;
+  --color-text-tertiary: #8B95A8;
+  --color-text-inverse: #FFFFFF;
+
+  /* ━━━━━━━━━━ BRAND — IRIS ━━━━━━━━━━ */
+  --color-iris: #6B5CE7;
+  --color-iris-light: #8577F0;
+  --color-iris-dim: rgba(107, 92, 231, 0.08);
+  --color-iris-border: rgba(107, 92, 231, 0.2);
+
+  /* ━━━━━━━━━━ FUNCTIONAL COLOURS ━━━━━━━━━━ */
+  --color-jade: #2BB673;
+  --color-jade-dim: rgba(43, 182, 115, 0.08);
+  --color-jade-border: rgba(43, 182, 115, 0.2);
+
+  --color-amber: #E09519;
+  --color-amber-dim: rgba(224, 149, 25, 0.08);
+  --color-amber-border: rgba(224, 149, 25, 0.2);
+
+  --color-coral: #E05C3A;
+  --color-coral-dim: rgba(224, 92, 58, 0.08);
+  --color-coral-border: rgba(224, 92, 58, 0.2);
+
+  --color-sky: #3AA5D6;
+  --color-sky-dim: rgba(58, 165, 214, 0.08);
+
+  /* ━━━━━━━━━━ GRADIENTS ━━━━━━━━━━ */
+  --gradient-iris: linear-gradient(135deg, #6B5CE7 0%, #5548C8 100%);
+  --gradient-canvas: linear-gradient(180deg, #FFFFFF 0%, #F8F9FC 100%);
+  --gradient-card-hover: linear-gradient(135deg, rgba(107, 92, 231, 0.04) 0%, transparent 100%);
+
+  /* ━━━━━━━━━━ SHADOWS ━━━━━━━━━━ */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 20px rgba(0, 0, 0, 0.06);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.06);
+
+  /* Glow shadows (softer in light mode) */
+  --shadow-iris: 0 0 20px rgba(107, 92, 231, 0.15);
+  --shadow-jade: 0 0 20px rgba(43, 182, 115, 0.12);
+  --shadow-coral: 0 0 20px rgba(224, 92, 58, 0.12);
+  --shadow-amber: 0 0 20px rgba(224, 149, 25, 0.1);
+
+  /* Scrollbar */
+  --scrollbar-track: var(--color-surface-02);
+  --scrollbar-thumb: var(--color-border-strong);
+  --scrollbar-thumb-hover: var(--color-text-tertiary);
+
+  /* Glass panel */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.06);
+}
+
+/* Shared variables that don't change between themes */
+:root {
   /* ━━━━━━━━━━ TYPOGRAPHY ━━━━━━━━━━ */
   --font-display: var(--font-syne), 'Georgia', serif;
   --font-body: var(--font-dm-sans), system-ui, sans-serif;
@@ -111,20 +210,6 @@
   --radius-2xl: 20px;
   --radius-full: 9999px;
 
-  /* ━━━━━━━━━━ SHADOWS ━━━━━━━━━━ */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4);
-  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.4);
-
-  /* Glow shadows */
-  --shadow-iris: 0 0 24px rgba(124, 106, 247, 0.3);
-  --shadow-jade: 0 0 24px rgba(61, 214, 140, 0.25);
-  --shadow-coral: 0 0 24px rgba(240, 113, 75, 0.25);
-  --shadow-amber: 0 0 24px rgba(245, 166, 35, 0.2);
-
   /* ━━━━━━━━━━ LAYOUT ━━━━━━━━━━ */
   --sidebar-width-collapsed: 56px;
   --sidebar-width-expanded: 220px;
@@ -172,6 +257,14 @@ html {
   line-height: var(--leading-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Theme transition */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
 }
 
 body {
@@ -365,9 +458,9 @@ body {
 
 /* ━━━━━━━━━━ GLASS PANEL ━━━━━━━━━━ */
 .glass-panel {
-  background: rgba(13, 18, 32, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
 }
 

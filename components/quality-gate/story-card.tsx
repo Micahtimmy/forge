@@ -79,7 +79,8 @@ function SuggestionCard({ suggestion }: { suggestion: AISuggestion }) {
   // It should accept: storyId, suggestionType, improvedText
   // and use the JIRA API to update the appropriate field
   const handleApplyToJira = () => {
-    console.log("Apply to JIRA - not yet implemented:", suggestion);
+    // Not yet implemented - will be handled by /api/jira/apply-suggestion
+    void suggestion;
   };
 
   return (

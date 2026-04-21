@@ -272,3 +272,137 @@ export async function deleteSignalUpdate(
     throw new Error(`Failed to delete signal update: ${error.message}`);
   }
 }
+
+// Decision Logger
+export interface Decision {
+  id: string;
+  workspaceId: string;
+  signalUpdateId: string | null;
+  madeById: string;
+  madeByName?: string;
+  title: string;
+  reasoning: string | null;
+  affectedTickets: string[];
+  tags: string[];
+  createdAt: Date;
+}
+
+export async function getDecisions(
+  workspaceId: string,
+  options: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+  } = {}
+): Promise<Decision[]> {
+  const supabase = createUntypedServerClient();
+  const { limit = 50, offset = 0, search } = options;
+
+  let query = supabase
+    .from("decisions")
+    .select(`
+      id,
+      workspace_id,
+      signal_update_id,
+      made_by_id,
+      title,
+      reasoning,
+      affected_tickets,
+      tags,
+      created_at,
+      users!decisions_made_by_id_fkey (
+        full_name,
+        display_name
+      )
+    `)
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (search) {
+    query = query.or(`title.ilike.%${search}%,reasoning.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Failed to fetch decisions: ${error.message}`);
+  }
+
+  return (data || []).map((row) => {
+    const user = row.users as { full_name?: string; display_name?: string } | null;
+    return {
+      id: row.id,
+      workspaceId: row.workspace_id,
+      signalUpdateId: row.signal_update_id,
+      madeById: row.made_by_id,
+      madeByName: user?.full_name || user?.display_name || "Unknown",
+      title: row.title,
+      reasoning: row.reasoning,
+      affectedTickets: row.affected_tickets || [],
+      tags: row.tags || [],
+      createdAt: new Date(row.created_at),
+    };
+  });
+}
+
+export async function createDecision(
+  workspaceId: string,
+  madeById: string,
+  data: {
+    title: string;
+    reasoning?: string;
+    affectedTickets?: string[];
+    tags?: string[];
+    signalUpdateId?: string;
+  }
+): Promise<Decision> {
+  const supabase = createUntypedServerClient();
+
+  const { data: created, error } = await supabase
+    .from("decisions")
+    .insert({
+      workspace_id: workspaceId,
+      made_by_id: madeById,
+      signal_update_id: data.signalUpdateId || null,
+      title: data.title,
+      reasoning: data.reasoning || null,
+      affected_tickets: data.affectedTickets || [],
+      tags: data.tags || [],
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create decision: ${error.message}`);
+  }
+
+  return {
+    id: created.id,
+    workspaceId: created.workspace_id,
+    signalUpdateId: created.signal_update_id,
+    madeById: created.made_by_id,
+    title: created.title,
+    reasoning: created.reasoning,
+    affectedTickets: created.affected_tickets || [],
+    tags: created.tags || [],
+    createdAt: new Date(created.created_at),
+  };
+}
+
+export async function deleteDecision(
+  workspaceId: string,
+  decisionId: string
+): Promise<void> {
+  const supabase = createUntypedServerClient();
+
+  const { error } = await supabase
+    .from("decisions")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("id", decisionId);
+
+  if (error) {
+    throw new Error(`Failed to delete decision: ${error.message}`);
+  }
+}

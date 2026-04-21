@@ -718,9 +718,199 @@ export function getStoriesAtRisk(stories: StoryWithScore[]) {
 
 // Sprint history for trends
 export const DEMO_SPRINT_HISTORY = [
-  { sprint: "Sprint 18", avgScore: 58, stories: 10 },
-  { sprint: "Sprint 19", avgScore: 62, stories: 11 },
-  { sprint: "Sprint 20", avgScore: 68, stories: 12 },
-  { sprint: "Sprint 21", avgScore: 72, stories: 10 },
-  { sprint: "Sprint 22", avgScore: 69, stories: 12 },
+  { sprint: "S18", avgScore: 58, stories: 10 },
+  { sprint: "S19", avgScore: 62, stories: 11 },
+  { sprint: "S20", avgScore: 68, stories: 12 },
+  { sprint: "S21", avgScore: 72, stories: 10 },
+  { sprint: "S22", avgScore: 69, stories: 12 },
+];
+
+// Quality trend data for charts
+export const DEMO_QUALITY_TREND = [
+  { sprint: "S15", score: 45 },
+  { sprint: "S16", score: 48 },
+  { sprint: "S17", score: 55 },
+  { sprint: "S18", score: 58 },
+  { sprint: "S19", score: 62 },
+  { sprint: "S20", score: 68 },
+  { sprint: "S21", score: 72 },
+  { sprint: "S22", score: 69 },
+];
+
+// Velocity data
+export const DEMO_VELOCITY = [
+  { sprint: "S18", committed: 26, completed: 24 },
+  { sprint: "S19", committed: 28, completed: 26 },
+  { sprint: "S20", committed: 30, completed: 28 },
+  { sprint: "S21", committed: 28, completed: 28 },
+  { sprint: "S22", committed: 32, completed: 24 },
+];
+
+// Burndown data for current sprint
+export const DEMO_BURNDOWN = [
+  { day: "Day 1", ideal: 32, actual: 32, forecast: null },
+  { day: "Day 2", ideal: 29, actual: 30, forecast: null },
+  { day: "Day 3", ideal: 26, actual: 28, forecast: null },
+  { day: "Day 4", ideal: 22, actual: 26, forecast: null },
+  { day: "Day 5", ideal: 19, actual: 22, forecast: null },
+  { day: "Day 6", ideal: 16, actual: 18, forecast: null },
+  { day: "Day 7", ideal: 13, actual: 14, forecast: null },
+  { day: "Day 8", ideal: 10, actual: 12, forecast: null },
+  { day: "Day 9", ideal: 6, actual: null, forecast: 10 },
+  { day: "Day 10", ideal: 0, actual: null, forecast: 6 },
+];
+
+// Team comparison data for radar chart
+export const DEMO_TEAM_RADAR = [
+  { metric: "Velocity", fullMark: 100, "Platform": 85, "Integrations": 78, "Analytics": 72 },
+  { metric: "Quality", fullMark: 100, "Platform": 88, "Integrations": 82, "Analytics": 90 },
+  { metric: "Consistency", fullMark: 100, "Platform": 92, "Integrations": 75, "Analytics": 85 },
+  { metric: "Collaboration", fullMark: 100, "Platform": 78, "Integrations": 88, "Analytics": 80 },
+  { metric: "Improvement", fullMark: 100, "Platform": 70, "Integrations": 85, "Analytics": 95 },
+];
+
+// Capacity data
+export const DEMO_CAPACITY = [
+  { name: "Adaora Okonkwo", allocated: 8, capacity: 10 },
+  { name: "Chidi Eze", allocated: 10, capacity: 10 },
+  { name: "Ngozi Obi", allocated: 12, capacity: 10 },
+  { name: "Emeka Nwosu", allocated: 5, capacity: 10 },
+];
+
+// PI Confidence tracking
+export const DEMO_PI_CONFIDENCE = {
+  weeks: ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6"],
+  objectives: [
+    {
+      name: "Payment Integration",
+      color: "var(--color-iris)",
+      data: [75, 78, 82, 80, 85, 85],
+    },
+    {
+      name: "JIRA Reliability",
+      color: "var(--color-jade)",
+      data: [80, 85, 88, 92, 95, 95],
+    },
+    {
+      name: "Mobile Beta",
+      color: "var(--color-amber)",
+      data: [70, 68, 65, 62, 68, 70],
+    },
+  ],
+};
+
+// Individual contributor data
+export const DEMO_INDIVIDUAL_STATS = {
+  userId: "user-1",
+  name: "Adaora Okonkwo",
+  role: "Scrum Master",
+  team: "Platform",
+  currentPI: {
+    storiesCompleted: 12,
+    pointsDelivered: 34,
+    avgQuality: 87,
+    prReviews: 18,
+    rank: 3,
+  },
+  sprintHistory: [
+    { sprint: "S19", points: 8, quality: 85, reviews: 4 },
+    { sprint: "S20", points: 10, quality: 88, reviews: 5 },
+    { sprint: "S21", points: 8, quality: 91, reviews: 6 },
+    { sprint: "S22", points: 8, quality: 84, reviews: 3 },
+  ],
+  currentWork: {
+    inProgress: [
+      { key: "FORGE-101", title: "OAuth2 authentication", points: 5, daysIn: 2 },
+    ],
+    toDo: [
+      { key: "FORGE-111", title: "Team invitation flow", points: 5 },
+    ],
+    doneThisSprint: [
+      { key: "FORGE-105", title: "JIRA OAuth integration", points: 8, score: 94 },
+      { key: "FORGE-108", title: "Safari login fix", points: 1, score: 78 },
+    ],
+  },
+  aiInsights: [
+    "Your acceptance criteria quality improved 15% this PI",
+    "Consider mentoring new team member Ngozi",
+    "3 of your stories became team templates",
+  ],
+  strengths: [
+    "Consistently high quality (top 10% in org)",
+    "Strong code reviewer - thorough feedback",
+    "Reliable estimation - 95% accuracy",
+  ],
+  growthAreas: [
+    "Acceptance criteria could be more detailed",
+    "Consider taking on more complex stories",
+  ],
+};
+
+// Kanban board data
+export const DEMO_KANBAN_BOARD = {
+  columns: [
+    {
+      id: "backlog",
+      name: "Backlog",
+      wipLimit: null,
+      items: [
+        { id: "k1", key: "OPS-101", title: "Update SSL certificates", priority: "high", daysInColumn: 5 },
+        { id: "k2", key: "OPS-102", title: "Optimize database queries", priority: "medium", daysInColumn: 3 },
+        { id: "k3", key: "OPS-103", title: "Review monitoring alerts", priority: "low", daysInColumn: 1 },
+      ],
+    },
+    {
+      id: "ready",
+      name: "Ready",
+      wipLimit: 5,
+      items: [
+        { id: "k4", key: "OPS-098", title: "Implement log rotation", priority: "medium", daysInColumn: 2 },
+        { id: "k5", key: "OPS-099", title: "Update API documentation", priority: "low", daysInColumn: 1 },
+      ],
+    },
+    {
+      id: "in-progress",
+      name: "In Progress",
+      wipLimit: 3,
+      items: [
+        { id: "k6", key: "OPS-095", title: "Migrate to new CDN", priority: "high", daysInColumn: 3, assignee: "Chidi" },
+        { id: "k7", key: "OPS-096", title: "Setup staging environment", priority: "medium", daysInColumn: 2, assignee: "Ngozi" },
+        { id: "k8", key: "OPS-097", title: "Fix memory leak", priority: "high", daysInColumn: 1, assignee: "Emeka" },
+      ],
+    },
+    {
+      id: "review",
+      name: "In Review",
+      wipLimit: 3,
+      items: [
+        { id: "k9", key: "OPS-093", title: "Upgrade Node.js version", priority: "medium", daysInColumn: 1, assignee: "Adaora" },
+      ],
+    },
+    {
+      id: "done",
+      name: "Done",
+      wipLimit: null,
+      items: [
+        { id: "k10", key: "OPS-090", title: "Configure auto-scaling", priority: "high", daysInColumn: 0 },
+        { id: "k11", key: "OPS-091", title: "Update firewall rules", priority: "medium", daysInColumn: 0 },
+        { id: "k12", key: "OPS-092", title: "Deploy hotfix", priority: "high", daysInColumn: 0 },
+      ],
+    },
+  ],
+  metrics: {
+    avgCycleTime: 3.2,
+    avgLeadTime: 5.8,
+    throughputThisWeek: 12,
+    throughputAvg: 10,
+    blockedPercentage: 8,
+  },
+};
+
+// Cumulative flow data for Kanban
+export const DEMO_CUMULATIVE_FLOW = [
+  { date: "Apr 1", backlog: 15, ready: 5, inProgress: 3, review: 2, done: 10 },
+  { date: "Apr 5", backlog: 14, ready: 4, inProgress: 4, review: 2, done: 14 },
+  { date: "Apr 10", backlog: 12, ready: 5, inProgress: 3, review: 3, done: 18 },
+  { date: "Apr 15", backlog: 10, ready: 4, inProgress: 3, review: 2, done: 24 },
+  { date: "Apr 20", backlog: 8, ready: 3, inProgress: 3, review: 1, done: 30 },
 ];

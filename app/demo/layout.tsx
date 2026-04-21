@@ -10,22 +10,33 @@ import {
   Map,
   LayoutDashboard,
   Settings,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Search,
   Bell,
+  Sun,
+  Moon,
+  User,
+  BarChart3,
+  Kanban,
 } from "lucide-react";
+import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip } from "@/components/ui/tooltip";
+import { AIAssistant } from "@/components/ai/ai-assistant";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { PageSkeleton } from "@/components/ui/skeleton";
 
 const navItems = [
   { href: "/demo", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/demo/my-dashboard", icon: User, label: "My Dashboard" },
   { href: "/demo/quality-gate", icon: ShieldCheck, label: "Quality Gate" },
   { href: "/demo/signal", icon: Send, label: "Signal" },
   { href: "/demo/horizon", icon: Map, label: "Horizon" },
+  { href: "/demo/kanban", icon: Kanban, label: "Kanban" },
+  { href: "/demo/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/demo/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -133,6 +144,7 @@ function DemoSidebar() {
 
 function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useAppStore();
 
   const getPageTitle = () => {
     if (pathname === "/demo") return "Dashboard";
@@ -178,6 +190,26 @@ function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
           </button>
         </Tooltip>
 
+        {/* Theme Toggle */}
+        <Tooltip content={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleTheme}
+            className={cn(
+              "p-2 rounded-md",
+              "text-text-secondary hover:text-text-primary hover:bg-surface-03",
+              "transition-colors"
+            )}
+          >
+            {theme === "dark" ? (
+              <Moon className="w-5 h-5" />
+            ) : (
+              <Sun className="w-5 h-5" />
+            )}
+          </motion.button>
+        </Tooltip>
+
         <Tooltip content="Notifications">
           <button
             className={cn(
@@ -218,16 +250,9 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="min-h-screen bg-canvas">
       {/* Demo Banner */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-iris text-white py-1.5 px-4 text-center text-sm">
-        <Sparkles className="w-4 h-4 inline mr-2" />
-        Demo Mode - Exploring with sample data.{" "}
-        <Link href="/signup" className="underline font-medium hover:text-white/90">
-          Sign up
-        </Link>{" "}
-        to connect your JIRA workspace.
-      </div>
+      <DemoBanner className="fixed top-0 left-0 right-0 z-50" />
 
-      <div className="pt-8">
+      <div className="pt-10">
         <DemoSidebar />
         <DemoTopbar sidebarExpanded={sidebarExpanded} />
 
@@ -237,10 +262,13 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
             sidebarExpanded ? "pl-[220px]" : "pl-[56px]"
           )}
         >
-          <Suspense fallback={<div className="p-6">Loading...</div>}>
+          <Suspense fallback={<PageSkeleton />}>
             <div className="p-6">{children}</div>
           </Suspense>
         </main>
+
+        {/* AI Assistant */}
+        <AIAssistant />
       </div>
     </div>
   );

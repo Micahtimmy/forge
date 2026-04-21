@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { useToastActions } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import { DEMO_UPDATES } from "@/lib/demo/mock-data";
 import { audienceLabels } from "@/types/signal";
 import { useState } from "react";

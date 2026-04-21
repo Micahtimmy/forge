@@ -13,7 +13,6 @@ import {
   Zap,
   Clock,
   CheckCircle2,
-  Users,
 } from "lucide-react";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Badge } from "@/components/ui/badge";

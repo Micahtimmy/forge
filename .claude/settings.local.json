@@ -69,7 +69,15 @@
       "Bash(npx eslint *)",
       "Bash(cat)",
       "Bash(bash /tmp/lint_fixes.sh)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git bundle *)",
+      "Read(//tmp/**)",
+      "Bash(awk '{print $5}')",
+      "WebSearch",
+      "WebFetch(domain:www.interswitchgroup.com)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "Bash(npm test *)",
+      "Bash(awk '{print $NF}')"
     ]
   }
 }

@@ -34,7 +34,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown";
 import { cn } from "@/lib/utils";
-import { staggerContainer, staggerItem } from "@/lib/motion/variants";
+import { staggerContainer } from "@/lib/motion/variants";
 import {
   DEMO_STORIES,
   DEMO_SPRINTS,

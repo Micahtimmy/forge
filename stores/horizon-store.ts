@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import type { PIDependency, PIRisk } from "@/types/pi";
 
 interface HorizonState {
   // Selected PI

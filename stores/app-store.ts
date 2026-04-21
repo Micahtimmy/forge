@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+type Theme = "dark" | "light" | "system";
+
 interface AppState {
   // Sidebar
   sidebarExpanded: boolean;
@@ -13,6 +15,11 @@ interface AppState {
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
+
+  // Theme
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
 
   // Current workspace
   currentWorkspaceId: string | null;
@@ -43,6 +50,14 @@ export const useAppStore = create<AppState>()(
       toggleCommandPalette: () =>
         set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
 
+      // Theme
+      theme: "dark",
+      setTheme: (theme) => set({ theme }),
+      toggleTheme: () =>
+        set((state) => ({
+          theme: state.theme === "dark" ? "light" : "dark",
+        })),
+
       // Workspace
       currentWorkspaceId: null,
       setCurrentWorkspaceId: (id) => set({ currentWorkspaceId: id }),
@@ -58,6 +73,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         sidebarExpanded: state.sidebarExpanded,
         sidebarPinned: state.sidebarPinned,
+        theme: state.theme,
         currentWorkspaceId: state.currentWorkspaceId,
       }),
     }

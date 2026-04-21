@@ -12,6 +12,8 @@ import {
   Settings,
   LogOut,
   User,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
@@ -167,7 +169,7 @@ const mockNotifications = [
 
 export function Topbar() {
   const router = useRouter();
-  const { sidebarExpanded, setCommandPaletteOpen } = useAppStore();
+  const { sidebarExpanded, setCommandPaletteOpen, theme, toggleTheme } = useAppStore();
   const unreadCount = mockNotifications.filter((n) => !n.read).length;
 
   return (
@@ -207,6 +209,26 @@ export function Topbar() {
               ⌘K
             </kbd>
           </button>
+        </Tooltip>
+
+        {/* Theme Toggle */}
+        <Tooltip content={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleTheme}
+            className={cn(
+              "p-2 rounded-md",
+              "text-text-secondary hover:text-text-primary hover:bg-surface-03",
+              "transition-colors"
+            )}
+          >
+            {theme === "dark" ? (
+              <Moon className="w-5 h-5" />
+            ) : (
+              <Sun className="w-5 h-5" />
+            )}
+          </motion.button>
         </Tooltip>
 
         {/* Notifications */}
