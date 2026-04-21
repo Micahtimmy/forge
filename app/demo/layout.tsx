@@ -40,9 +40,8 @@ const navItems = [
   { href: "/demo/settings", icon: Settings, label: "Settings" },
 ];
 
-function DemoSidebar() {
+function DemoSidebar({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState(true);
 
   return (
     <motion.aside
@@ -50,7 +49,7 @@ function DemoSidebar() {
       animate={{ width: expanded ? 220 : 56 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       className={cn(
-        "fixed left-0 top-0 h-full z-40",
+        "fixed left-0 top-[40px] h-[calc(100vh-40px)] z-40",
         "bg-surface-01 border-r border-border",
         "flex flex-col"
       )}
@@ -77,7 +76,7 @@ function DemoSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-2 space-y-1">
+      <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href ||
             (item.href !== "/demo" && pathname.startsWith(item.href));
@@ -124,7 +123,7 @@ function DemoSidebar() {
       {/* Collapse Toggle */}
       <div className="p-2 border-t border-border">
         <button
-          onClick={() => setExpanded(!expanded)}
+          onClick={onToggle}
           className={cn(
             "w-full flex items-center justify-center p-2 rounded-md",
             "text-text-tertiary hover:text-text-secondary hover:bg-surface-02",
@@ -148,9 +147,12 @@ function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
 
   const getPageTitle = () => {
     if (pathname === "/demo") return "Dashboard";
+    if (pathname.startsWith("/demo/my-dashboard")) return "My Dashboard";
     if (pathname.startsWith("/demo/quality-gate")) return "Quality Gate";
     if (pathname.startsWith("/demo/signal")) return "Signal";
     if (pathname.startsWith("/demo/horizon")) return "Horizon";
+    if (pathname.startsWith("/demo/kanban")) return "Kanban";
+    if (pathname.startsWith("/demo/analytics")) return "Analytics";
     if (pathname.startsWith("/demo/settings")) return "Settings";
     return "FORGE";
   };
@@ -158,7 +160,7 @@ function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 h-12 z-30",
+        "fixed top-[40px] right-0 h-12 z-30",
         "bg-canvas/80 backdrop-blur-md border-b border-border-subtle",
         "flex items-center justify-between px-4",
         "transition-all duration-200",
@@ -168,7 +170,7 @@ function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
       {/* Left: Page Title */}
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-text-primary">{getPageTitle()}</span>
-        <Badge variant="default" size="sm">Demo</Badge>
+        <Badge variant="iris" size="sm">Demo</Badge>
       </div>
 
       {/* Right: Actions */}
@@ -185,16 +187,14 @@ function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
             <Search className="w-4 h-4" />
             <span className="hidden sm:inline">Search...</span>
             <kbd className="hidden sm:inline text-xs bg-surface-03 px-1.5 py-0.5 rounded font-mono">
-              Cmd+K
+              ⌘K
             </kbd>
           </button>
         </Tooltip>
 
         {/* Theme Toggle */}
         <Tooltip content={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={toggleTheme}
             className={cn(
               "p-2 rounded-md",
@@ -203,11 +203,11 @@ function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
             )}
           >
             {theme === "dark" ? (
-              <Moon className="w-5 h-5" />
-            ) : (
               <Sun className="w-5 h-5" />
+            ) : (
+              <Moon className="w-5 h-5" />
             )}
-          </motion.button>
+          </button>
         </Tooltip>
 
         <Tooltip content="Notifications">
@@ -240,6 +240,8 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setSidebarExpanded(false);
+      } else {
+        setSidebarExpanded(true);
       }
     };
     handleResize();
@@ -249,27 +251,26 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-canvas">
-      {/* Demo Banner */}
-      <DemoBanner className="fixed top-0 left-0 right-0 z-50" />
+      {/* Demo Banner - fixed at very top */}
+      <DemoBanner className="fixed top-0 left-0 right-0 z-50 h-[40px]" />
 
-      <div className="pt-10">
-        <DemoSidebar />
-        <DemoTopbar sidebarExpanded={sidebarExpanded} />
+      {/* Main content wrapper - starts below banner */}
+      <DemoSidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} />
+      <DemoTopbar sidebarExpanded={sidebarExpanded} />
 
-        <main
-          className={cn(
-            "pt-12 min-h-screen transition-all duration-200",
-            sidebarExpanded ? "pl-[220px]" : "pl-[56px]"
-          )}
-        >
-          <Suspense fallback={<PageSkeleton />}>
-            <div className="p-6">{children}</div>
-          </Suspense>
-        </main>
+      <main
+        className={cn(
+          "pt-[92px] min-h-screen transition-all duration-200",
+          sidebarExpanded ? "pl-[220px]" : "pl-[56px]"
+        )}
+      >
+        <Suspense fallback={<PageSkeleton />}>
+          <div className="p-6">{children}</div>
+        </Suspense>
+      </main>
 
-        {/* AI Assistant */}
-        <AIAssistant />
-      </div>
+      {/* AI Assistant */}
+      <AIAssistant />
     </div>
   );
 }

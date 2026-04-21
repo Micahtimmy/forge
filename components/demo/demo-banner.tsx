@@ -1,8 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Info, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, X, Info } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface DemoBannerProps {
@@ -12,35 +13,40 @@ interface DemoBannerProps {
 export function DemoBanner({ className }: DemoBannerProps) {
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className={cn(
-        "bg-amber-dim border-b border-amber-border px-4 py-2",
-        className
-      )}
-    >
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 text-sm">
-          <Info className="w-4 h-4 text-amber" />
-          <span className="text-amber font-medium">Demo Mode</span>
-          <span className="text-text-secondary">
-            Exploring with sample data. Changes will not be saved.
-          </span>
-        </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className="p-1 rounded hover:bg-surface-03 text-text-tertiary hover:text-text-primary transition-colors"
-          aria-label="Dismiss banner"
+    <AnimatePresence>
+      {!dismissed && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className={cn(
+            "bg-iris text-white px-4 py-2",
+            className
+          )}
         >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    </motion.div>
+          <div className="flex items-center justify-center gap-2 text-sm">
+            <Sparkles className="w-4 h-4" />
+            <span className="font-medium">Demo Mode</span>
+            <span className="opacity-90">— Exploring with sample data.</span>
+            <Link
+              href="/signup"
+              className="underline font-medium hover:opacity-80 transition-opacity ml-1"
+            >
+              Sign up
+            </Link>
+            <span className="opacity-90">to connect your JIRA workspace.</span>
+            <button
+              onClick={() => setDismissed(true)}
+              className="ml-4 p-1 rounded hover:bg-white/20 transition-colors"
+              aria-label="Dismiss banner"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
