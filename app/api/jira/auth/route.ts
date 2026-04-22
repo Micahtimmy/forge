@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     let workspaceId: string | null = null;
 
     // Try workspace_members table first
-    const { data: membership } = await supabase
+    const { data: membership, error: membershipError } = await supabase
       .from("workspace_members")
       .select("workspace_id")
       .eq("user_id", user.id)
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       workspaceId = membership.workspace_id;
     } else {
       // Fall back to users table
-      const { data: userProfile } = await supabase
+      const { data: userProfile, error: profileError } = await supabase
         .from("users")
         .select("workspace_id")
         .eq("id", user.id)
@@ -52,12 +52,22 @@ export async function GET(req: NextRequest) {
           }, {
             onConflict: "workspace_id,user_id",
           });
+      } else {
+        // Log for debugging
+        console.error("JIRA auth - no workspace found", {
+          userId: user.id,
+          membershipError: membershipError?.message,
+          profileError: profileError?.message,
+        });
       }
     }
 
     if (!workspaceId) {
       return NextResponse.json(
-        { error: "No workspace found. Please complete onboarding first." },
+        {
+          error: "No workspace found. Please complete onboarding first.",
+          debug: { userId: user.id }
+        },
         { status: 400 }
       );
     }
