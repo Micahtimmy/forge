@@ -72,9 +72,10 @@ export async function completeOnboarding(data: unknown) {
       .single();
 
     if (workspaceError) {
+      console.error("Workspace creation error:", workspaceError);
       return {
         success: false,
-        error: "Failed to create workspace. Please try again.",
+        error: `Failed to create workspace: ${workspaceError.message}`,
       };
     }
 
@@ -92,10 +93,11 @@ export async function completeOnboarding(data: unknown) {
       });
 
     if (profileError) {
+      console.error("Profile creation error:", profileError);
       await adminClient.from("workspaces").delete().eq("id", workspace.id);
       return {
         success: false,
-        error: "Failed to create your profile. Please try again.",
+        error: `Failed to create profile: ${profileError.message}`,
       };
     }
 
@@ -111,12 +113,13 @@ export async function completeOnboarding(data: unknown) {
       });
 
     if (membershipError) {
+      console.error("Membership creation error:", membershipError);
       // Clean up on failure
       await adminClient.from("users").delete().eq("id", user.id);
       await adminClient.from("workspaces").delete().eq("id", workspace.id);
       return {
         success: false,
-        error: "Failed to set up workspace membership. Please try again.",
+        error: `Failed to set up membership: ${membershipError.message}`,
       };
     }
 
