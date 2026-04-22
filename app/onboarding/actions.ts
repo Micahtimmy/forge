@@ -99,6 +99,27 @@ export async function completeOnboarding(data: unknown) {
       };
     }
 
+    // Step 3: Create workspace membership (required for JIRA auth and other features)
+    const { error: membershipError } = await adminClient
+      .from("workspace_members")
+      .upsert({
+        workspace_id: workspace.id,
+        user_id: user.id,
+        role: "owner",
+      }, {
+        onConflict: "workspace_id,user_id",
+      });
+
+    if (membershipError) {
+      // Clean up on failure
+      await adminClient.from("users").delete().eq("id", user.id);
+      await adminClient.from("workspaces").delete().eq("id", workspace.id);
+      return {
+        success: false,
+        error: "Failed to set up workspace membership. Please try again.",
+      };
+    }
+
     revalidatePath("/");
 
     return {
