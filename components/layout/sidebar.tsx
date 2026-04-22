@@ -23,9 +23,19 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
+import { useUser } from "@/hooks/use-user";
 import { Avatar } from "@/components/ui/avatar";
 import { Tooltip } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { sidebarVariants } from "@/lib/motion/variants";
+
+const ROLE_LABELS: Record<string, string> = {
+  sm: "Scrum Master",
+  pm: "Product Manager",
+  pgm: "Program Manager",
+  rte: "RTE",
+  admin: "Admin",
+};
 
 interface NavItem {
   label: string;
@@ -171,6 +181,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarExpanded, sidebarPinned, toggleSidebar, toggleSidebarPin } =
     useAppStore();
+  const { data: user } = useUser();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -277,7 +288,7 @@ export function Sidebar() {
               >
                 <div className="flex items-center gap-1">
                   <span className="text-sm font-medium text-text-primary truncate">
-                    Workspace
+                    {user?.workspaceName || "Workspace"}
                   </span>
                   <ChevronDown className="w-3 h-3 text-text-tertiary flex-shrink-0" />
                 </div>
@@ -293,7 +304,7 @@ export function Sidebar() {
             "hover:bg-surface-03 transition-colors cursor-pointer"
           )}
         >
-          <Avatar size="sm" alt="User" status="online" />
+          <Avatar size="sm" alt={user?.displayName || "User"} status="online" />
           <AnimatePresence>
             {sidebarExpanded && (
               <motion.div
@@ -302,9 +313,16 @@ export function Sidebar() {
                 exit={{ opacity: 0, width: 0 }}
                 className="flex-1 min-w-0 overflow-hidden"
               >
-                <span className="text-sm font-medium text-text-primary truncate block">
-                  User
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-text-primary truncate">
+                    {user?.displayName || "User"}
+                  </span>
+                  {user?.role && (
+                    <span className="text-xs text-text-tertiary truncate">
+                      {ROLE_LABELS[user.role] || user.role}
+                    </span>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getJiraAuthUrl } from "@/lib/jira/auth";
 import { nanoid } from "nanoid";
 
@@ -8,6 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     // Get user session
     const supabase = await createSupabaseServerClient();
+    const adminClient = createSupabaseAdminClient();
 
     const {
       data: { user },
@@ -19,11 +21,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user's workspace - try workspace_members first, fall back to users table
+    // Get user's workspace - use admin client to bypass RLS issues
     let workspaceId: string | null = null;
 
-    // Try workspace_members table first
-    const { data: membership, error: membershipError } = await supabase
+    // Try workspace_members table first (with admin to bypass RLS)
+    const { data: membership, error: membershipError } = await adminClient
       .from("workspace_members")
       .select("workspace_id")
       .eq("user_id", user.id)
@@ -32,8 +34,8 @@ export async function GET(req: NextRequest) {
     if (membership?.workspace_id) {
       workspaceId = membership.workspace_id;
     } else {
-      // Fall back to users table
-      const { data: userProfile, error: profileError } = await supabase
+      // Fall back to users table (with admin to bypass RLS)
+      const { data: userProfile, error: profileError } = await adminClient
         .from("users")
         .select("workspace_id")
         .eq("id", user.id)
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
         workspaceId = userProfile.workspace_id;
 
         // Auto-create workspace membership for users who onboarded before this fix
-        await supabase
+        await adminClient
           .from("workspace_members")
           .upsert({
             workspace_id: userProfile.workspace_id,
