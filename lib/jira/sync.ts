@@ -380,3 +380,49 @@ export async function getJiraSyncStatus(
     storiesSynced: data.stories_synced || 0,
   };
 }
+
+// Get project keys for a workspace from existing synced stories or JIRA API
+export async function getProjectKeysForWorkspace(
+  workspaceId: string
+): Promise<string[]> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // First try to get unique project keys from already synced stories
+  const { data: storyData } = await supabase
+    .from("stories")
+    .select("jira_key")
+    .eq("workspace_id", workspaceId)
+    .is("archived_at", null)
+    .limit(1000);
+
+  if (storyData && storyData.length > 0) {
+    // Extract unique project keys from JIRA keys (e.g., "PROJ-123" -> "PROJ")
+    const projectKeys = new Set<string>();
+    for (const story of storyData) {
+      const key = story.jira_key;
+      if (key && key.includes("-")) {
+        projectKeys.add(key.split("-")[0]);
+      }
+    }
+    if (projectKeys.size > 0) {
+      return Array.from(projectKeys);
+    }
+  }
+
+  // Fall back to fetching projects from JIRA API
+  try {
+    const client = await getJiraClientForWorkspace(workspaceId);
+    if (!client) {
+      return [];
+    }
+
+    const projects = await client.getProjects();
+    return projects.map((p) => p.key);
+  } catch (error) {
+    console.error("Failed to fetch JIRA projects:", error);
+    return [];
+  }
+}

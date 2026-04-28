@@ -141,9 +141,14 @@ export function PICanvas({ canvasData, onCanvasChange }: PICanvasProps) {
   const { isDependencyMode, setIsDependencyMode, pendingDependencyFrom, setPendingDependencyFrom } =
     useHorizonStore();
 
-  // Use mock data if none provided
+  // Use provided data or show empty canvas
   const initialData = useMemo(
-    () => (canvasData?.nodes?.length ? canvasData : generateMockCanvasData()),
+    () => {
+      if (canvasData?.nodes?.length) {
+        return canvasData;
+      }
+      return { nodes: [], edges: [] };
+    },
     [canvasData]
   );
 
@@ -209,13 +214,40 @@ export function PICanvas({ canvasData, onCanvasChange }: PICanvasProps) {
     }
   }, [nodes, edges, onCanvasChange]);
 
+  const handleEdgesChange = useCallback(
+    (changes: Parameters<typeof onEdgesChange>[0]) => {
+      onEdgesChange(changes);
+      // Also trigger save when edges change
+      if (onCanvasChange) {
+        setTimeout(() => {
+          const data: PICanvasData = {
+            nodes: nodes as unknown as PICanvasData["nodes"],
+            edges: edges as unknown as PICanvasData["edges"],
+          };
+          onCanvasChange(data);
+        }, 100);
+      }
+    },
+    [onEdgesChange, nodes, edges, onCanvasChange]
+  );
+
+  const isEmpty = nodes.length === 0;
+
   return (
-    <div className="w-full h-[600px] bg-canvas rounded-lg border border-border overflow-hidden">
+    <div className="w-full h-[600px] bg-canvas rounded-lg border border-border overflow-hidden relative">
+      {isEmpty && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+          <div className="text-center">
+            <div className="text-text-tertiary text-sm mb-2">No features planned yet</div>
+            <div className="text-text-tertiary text-xs">Click &quot;Add Feature&quot; to start planning</div>
+          </div>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         onNodeDragStop={onNodeDragStop}

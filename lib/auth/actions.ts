@@ -95,7 +95,7 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const { email, password } = validated.data;
   const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -109,6 +109,17 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
 
   // Get redirect URL from query params or default to dashboard
   const redirectTo = formData.get("redirect") as string || "/";
+
+  // Check if MFA is required
+  const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  if (mfaData && mfaData.nextLevel === "aal2" && mfaData.currentLevel === "aal1") {
+    // User has MFA enabled but hasn't completed the challenge
+    return {
+      success: true,
+      redirectTo: `/mfa?redirect=${encodeURIComponent(redirectTo)}`,
+    };
+  }
 
   return {
     success: true,

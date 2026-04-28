@@ -3,7 +3,9 @@
  * Generates well-formed user stories from brief descriptions
  */
 
-export const PROMPT_VERSION = "1.0.0";
+import { sanitizeForPrompt } from "../sanitize";
+
+export const PROMPT_VERSION = "1.1.0";
 
 export const GENERATE_STORY_SYSTEM = `You are a senior product manager and agile expert. Your task is to transform brief feature descriptions into well-structured user stories that follow best practices.
 
@@ -54,20 +56,35 @@ export interface StoryWriterInput {
 }
 
 export function buildGenerateStoryPrompt(input: StoryWriterInput): string {
+  // Sanitize all user-provided content to prevent prompt injection
+  const safeBriefDescription = sanitizeForPrompt(input.briefDescription, {
+    maxLength: 2000,
+    placeholder: "[No description provided]",
+  });
+  const safeProjectContext = input.projectContext
+    ? sanitizeForPrompt(input.projectContext, { maxLength: 1000 })
+    : null;
+  const safeEpicName = input.epicName
+    ? sanitizeForPrompt(input.epicName, { maxLength: 200 })
+    : null;
+  const safeTargetAudience = input.targetAudience
+    ? sanitizeForPrompt(input.targetAudience, { maxLength: 200 })
+    : null;
+
   let prompt = `Generate a well-structured user story from this brief description:
 
-"${input.briefDescription}"`;
+"${safeBriefDescription}"`;
 
-  if (input.projectContext) {
-    prompt += `\n\nProject Context: ${input.projectContext}`;
+  if (safeProjectContext) {
+    prompt += `\n\nProject Context: ${safeProjectContext}`;
   }
 
-  if (input.epicName) {
-    prompt += `\n\nEpic: ${input.epicName}`;
+  if (safeEpicName) {
+    prompt += `\n\nEpic: ${safeEpicName}`;
   }
 
-  if (input.targetAudience) {
-    prompt += `\n\nTarget User: ${input.targetAudience}`;
+  if (safeTargetAudience) {
+    prompt += `\n\nTarget User: ${safeTargetAudience}`;
   }
 
   prompt += `\n\nGenerate a complete, well-formed user story with all required elements.`;

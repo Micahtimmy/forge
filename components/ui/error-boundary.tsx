@@ -113,3 +113,66 @@ export function PageErrorBoundary({ children }: { children: ReactNode }) {
     </ErrorBoundary>
   );
 }
+
+/**
+ * Minimal error boundary for layout elements (sidebar, topbar)
+ * Shows a minimal error state that doesn't break the page layout
+ */
+export function LayoutErrorBoundary({
+  children,
+  name,
+}: {
+  children: ReactNode;
+  name: string;
+}) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="flex items-center justify-center p-4 text-text-tertiary text-xs">
+          <AlertTriangle className="w-3 h-3 mr-1" />
+          {name} unavailable
+        </div>
+      }
+      onReset={() => window.location.reload()}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Error boundary for AI/async features that can fail gracefully
+ */
+export function FeatureErrorBoundary({
+  children,
+  featureName,
+  onRetry,
+}: {
+  children: ReactNode;
+  featureName: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="rounded-lg border border-border-default bg-surface-01 p-4">
+          <div className="flex items-center gap-2 text-amber mb-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="text-sm font-medium">{featureName} unavailable</span>
+          </div>
+          <p className="text-xs text-text-secondary mb-3">
+            This feature encountered an error. Your data is safe.
+          </p>
+          {onRetry && (
+            <Button variant="secondary" size="sm" onClick={onRetry}>
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Retry
+            </Button>
+          )}
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}

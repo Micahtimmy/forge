@@ -77,7 +77,13 @@
       "WebFetch(domain:www.interswitchgroup.com)",
       "WebFetch(domain:en.wikipedia.org)",
       "Bash(npm test *)",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(code *)",
+      "Bash(npx vitest *)",
+      "Bash(npm list *)",
+      "Bash(npx inngest-cli@latest dev --help)",
+      "Bash(mkdir -p docs/specs)",
+      "Bash(echo \"# FORGE Decision Intelligence System - Architecture Spec\")"
     ]
   }
 }

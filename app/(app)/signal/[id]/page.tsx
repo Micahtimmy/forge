@@ -17,6 +17,8 @@ import {
   Plus,
   MoreHorizontal,
   FileText,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Input, Label } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsListUnderline, TabsTriggerUnderline, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -33,90 +36,62 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown";
 import { useToastActions } from "@/components/ui/toast";
+import { useSignalUpdate, useDeleteUpdate, useUpdateSignalStatus, useLogDecision, useSendUpdate } from "@/hooks/use-signal";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import { audienceLabels, type AudienceType } from "@/types/signal";
 
-// Mock data
-const mockUpdate = {
-  id: "1",
-  sprintRef: "Sprint 22",
-  status: "sent" as "sent" | "draft" | "archived",
-  sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  author: { name: "Jane Doe", email: "jane@company.com" },
-  audiences: ["executive", "team"] as AudienceType[],
-  content: {
-    executive: `## Sprint 22 Update - Executive Summary
+interface SignalUpdateData {
+  id: string;
+  sprintRef: string | null;
+  status: "sent" | "draft" | "archived";
+  sentAt: string | null;
+  createdAt: string;
+  author: { name: string; email: string };
+  audiences: AudienceType[];
+  content: Record<string, string>;
+  decisions: Array<{
+    id: string;
+    title: string;
+    description: string;
+    outcome: string;
+    stakeholders: string[];
+    createdAt: string;
+  }>;
+  deliveryLog: Array<{
+    channel: string;
+    audience: string;
+    recipients: number;
+    sentAt: string;
+  }>;
+}
 
-**Sprint Status:** On Track
-**Velocity:** 21/21 points (100%)
-
-### Key Accomplishments
-- OAuth2 authentication completed ahead of schedule
-- Dashboard UI received positive stakeholder feedback
-- API rate limiting implementation deployed
-
-### Risks & Blockers
-- Payment provider sandbox access pending (medium risk)
-- Mobile team capacity reduced due to illness
-
-### Next Sprint Focus
-- Complete payment gateway integration
-- Begin notification system implementation
-
----
-*Questions? Reply to this update or reach out to the team.*`,
-    team: `## Sprint 22 Wrap-Up
-
-Hey team! Great work this sprint. Here's the summary:
-
-### Completed
-- **PROJ-118** User authentication with OAuth2 (5 pts)
-- **PROJ-119** Dashboard layout and navigation (3 pts)
-- **PROJ-120** API rate limiting (2 pts)
-
-### In Progress
-- **PROJ-121** Payment gateway (60% done, rolling over)
-- **PROJ-122** Email notifications (30% done)
-
-### Shoutouts
-Big thanks to Alex for jumping in to help with the OAuth flow when we hit that CORS issue!
-
-### Reminders
-- Retro is tomorrow at 2pm
-- Demo day is Friday - please test your features
-
-Let me know if you have any questions!`,
-  },
-  decisions: [
-    {
-      id: "d1",
-      title: "Postpone mobile launch to next PI",
-      description: "Due to capacity constraints and payment integration timeline, agreed to push mobile launch by 2 weeks",
-      outcome: "Approved by product leadership",
-      stakeholders: ["VP Product", "Mobile Lead", "PM"],
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "d2",
-      title: "Switch to Stripe for payment processing",
-      description: "Original provider (PayPal) had integration issues. Stripe offers better API and documentation.",
-      outcome: "Technical decision approved",
-      stakeholders: ["Tech Lead", "Finance", "PM"],
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ],
-  deliveryLog: [
-    { channel: "email", audience: "executive", recipients: 3, sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { channel: "email", audience: "team", recipients: 12, sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { channel: "slack", audience: "team", recipients: 1, sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-  ],
-};
+function LoadingState() {
+  return (
+    <div>
+      <Skeleton className="h-6 w-32 mb-4" />
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Skeleton className="h-96 w-full" />
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function DecisionCard({
   decision,
 }: {
-  decision: (typeof mockUpdate.decisions)[0];
+  decision: SignalUpdateData["decisions"][0];
 }) {
   return (
     <motion.div
@@ -160,16 +135,20 @@ export default function SignalDetailPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToastActions();
-
-  // TODO: Use updateId to fetch real signal data from API instead of mock data
   const updateId = params.id as string;
-  // Placeholder to mark updateId as used until real data fetching is implemented
-  void updateId;
 
-  const [activeTab, setActiveTab] = useState<AudienceType | "decisions">(
-    mockUpdate.audiences[0]
-  );
+  const { data: rawUpdate, isLoading, error } = useSignalUpdate(updateId);
+  const deleteUpdate = useDeleteUpdate();
+  const updateStatus = useUpdateSignalStatus();
+  const logDecision = useLogDecision();
+  const sendUpdate = useSendUpdate();
+
+  const [activeTab, setActiveTab] = useState<AudienceType | "decisions">("executive");
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipients, setRecipients] = useState<Array<{ email: string; name?: string; audience: AudienceType }>>([]);
   const [newDecision, setNewDecision] = useState({
     title: "",
     description: "",
@@ -177,27 +156,129 @@ export default function SignalDetailPage() {
     stakeholders: "",
   });
 
+  // Transform raw API response to component data format
+  const drafts = rawUpdate?.drafts || [];
+  const audiences = drafts.length > 0
+    ? (drafts.map(d => d.audience) as AudienceType[])
+    : ["executive", "team"] as AudienceType[];
+
+  const update: SignalUpdateData | null = rawUpdate ? {
+    id: rawUpdate.id,
+    sprintRef: rawUpdate.sprintRef,
+    status: rawUpdate.status,
+    sentAt: rawUpdate.sentAt || null,
+    createdAt: rawUpdate.createdAt,
+    author: { name: "Author", email: "" },
+    audiences,
+    content: drafts.reduce((acc: Record<string, string>, draft) => {
+      acc[draft.audience] = draft.content;
+      return acc;
+    }, {}),
+    decisions: [],
+    deliveryLog: [],
+  } : null;
+
   const handleCopyContent = (audience: AudienceType) => {
-    const content = mockUpdate.content[audience as keyof typeof mockUpdate.content];
+    if (!update) return;
+    const content = update.content[audience];
     if (content) {
       navigator.clipboard.writeText(content);
       toast.success("Copied!", "Update content copied to clipboard");
     }
   };
 
-  const handleAddDecision = () => {
-    // In real app, this would save to DB
-    console.log("Adding decision:", newDecision);
-    toast.success("Decision logged", "Decision has been recorded");
-    setIsDecisionModalOpen(false);
-    setNewDecision({ title: "", description: "", outcome: "", stakeholders: "" });
+  const handleAddDecision = async () => {
+    try {
+      await logDecision.mutateAsync({
+        updateId,
+        decision: {
+          title: newDecision.title,
+          description: newDecision.description,
+          outcome: newDecision.outcome,
+          stakeholders: newDecision.stakeholders.split(",").map((s) => s.trim()).filter(Boolean),
+        },
+      });
+      toast.success("Decision logged", "Decision has been recorded");
+      setIsDecisionModalOpen(false);
+      setNewDecision({ title: "", description: "", outcome: "", stakeholders: "" });
+    } catch (err) {
+      toast.error("Failed to log decision", err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
-  const handleDelete = () => {
-    // In real app, this would delete from DB
-    toast.success("Update deleted");
-    router.push("/signal");
+  const handleDelete = async () => {
+    try {
+      await deleteUpdate.mutateAsync(updateId);
+      toast.success("Update deleted");
+      router.push("/signal");
+    } catch (err) {
+      toast.error("Failed to delete", err instanceof Error ? err.message : "Unknown error");
+    }
   };
+
+  const handleAddRecipient = () => {
+    if (!recipientEmail || !update) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast.error("Invalid email", "Please enter a valid email address");
+      return;
+    }
+    if (recipients.some((r) => r.email === recipientEmail)) {
+      toast.error("Duplicate", "This email is already added");
+      return;
+    }
+    setRecipients([...recipients, { email: recipientEmail, audience: update.audiences[0] }]);
+    setRecipientEmail("");
+  };
+
+  const handleRemoveRecipient = (email: string) => {
+    setRecipients(recipients.filter((r) => r.email !== email));
+  };
+
+  const handleSendUpdate = async () => {
+    if (!update) return;
+    if (recipients.length === 0) {
+      setIsSendModalOpen(true);
+      return;
+    }
+    setIsSending(true);
+    try {
+      const result = await sendUpdate.mutateAsync({
+        updateId,
+        audiences: update.audiences,
+        channels: ["email"],
+        recipients,
+      });
+      const successCount = result.results?.filter((r: { success: boolean }) => r.success).length || 0;
+      toast.success("Update sent", `Sent to ${successCount} recipient(s)`);
+      setIsSendModalOpen(false);
+      setRecipients([]);
+    } catch (err) {
+      toast.error("Failed to send", err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  if (error || !update) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <AlertCircle className="w-12 h-12 text-coral mb-4" />
+        <h2 className="text-lg font-medium text-text-primary mb-2">Update not found</h2>
+        <p className="text-sm text-text-secondary mb-4">
+          {error instanceof Error ? error.message : "Unable to load update details"}
+        </p>
+        <Button variant="secondary" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Go back
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -217,33 +298,35 @@ export default function SignalDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-xl font-display font-bold text-text-primary">
-                {mockUpdate.sprintRef} Update
+                {update.sprintRef || "Sprint"} Update
               </h1>
-              <Badge variant={mockUpdate.status === "sent" ? "excellent" : "fair"}>
-                {mockUpdate.status === "sent" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                {mockUpdate.status === "draft" && <Clock className="w-3 h-3 mr-1" />}
-                {mockUpdate.status}
+              <Badge variant={update.status === "sent" ? "excellent" : "fair"}>
+                {update.status === "sent" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                {update.status === "draft" && <Clock className="w-3 h-3 mr-1" />}
+                {update.status}
               </Badge>
             </div>
             <div className="flex items-center gap-4 text-sm text-text-secondary">
               <div className="flex items-center gap-1">
-                <Avatar size="xs" alt={mockUpdate.author.name} />
-                <span>{mockUpdate.author.name}</span>
+                <Avatar size="xs" alt={update.author.name} />
+                <span>{update.author.name}</span>
               </div>
-              {mockUpdate.sentAt && (
+              {update.sentAt && (
                 <span>
-                  Sent {format(new Date(mockUpdate.sentAt), "MMM d, yyyy 'at' h:mm a")}
+                  Sent {format(new Date(update.sentAt), "MMM d, yyyy 'at' h:mm a")}
                 </span>
               )}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {mockUpdate.status === "draft" && (
+            {update.status === "draft" && (
               <Button
-                leftIcon={<Send className="w-4 h-4" />}
+                leftIcon={isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                onClick={handleSendUpdate}
+                disabled={isSending}
               >
-                Send Update
+                {isSending ? "Sending..." : "Send Update"}
               </Button>
             )}
             <DropdownMenu>
@@ -278,7 +361,7 @@ export default function SignalDetailPage() {
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AudienceType | "decisions")}>
             <TabsListUnderline>
-              {mockUpdate.audiences.map((audience) => (
+              {update.audiences.map((audience) => (
                 <TabsTriggerUnderline key={audience} value={audience}>
                   <Users className="w-4 h-4 mr-1.5" />
                   {audienceLabels[audience].split(" ")[0]}
@@ -287,15 +370,15 @@ export default function SignalDetailPage() {
               <TabsTriggerUnderline value="decisions">
                 <FileText className="w-4 h-4 mr-1.5" />
                 Decisions
-                {mockUpdate.decisions.length > 0 && (
+                {update.decisions.length > 0 && (
                   <Badge variant="default" size="sm" className="ml-1">
-                    {mockUpdate.decisions.length}
+                    {update.decisions.length}
                   </Badge>
                 )}
               </TabsTriggerUnderline>
             </TabsListUnderline>
 
-            {mockUpdate.audiences.map((audience) => (
+            {update.audiences.map((audience) => (
               <TabsContent key={audience} value={audience} className="mt-4">
                 <div className="bg-surface-01 border border-border rounded-lg">
                   <div className="flex items-center justify-between p-3 border-b border-border">
@@ -314,7 +397,7 @@ export default function SignalDetailPage() {
                   <div className="p-4">
                     <div className="prose prose-invert prose-sm max-w-none text-text-secondary">
                       <pre className="whitespace-pre-wrap font-body text-sm bg-transparent p-0">
-                        {mockUpdate.content[audience as keyof typeof mockUpdate.content]}
+                        {update.content[audience] || "No content generated yet"}
                       </pre>
                     </div>
                   </div>
@@ -337,7 +420,7 @@ export default function SignalDetailPage() {
                 </Button>
               </div>
 
-              {mockUpdate.decisions.length === 0 ? (
+              {update.decisions.length === 0 ? (
                 <div className="text-center py-12 bg-surface-01 border border-border rounded-lg">
                   <FileText className="w-12 h-12 text-text-tertiary mx-auto mb-3" />
                   <p className="text-sm text-text-secondary mb-2">
@@ -358,7 +441,7 @@ export default function SignalDetailPage() {
                   initial="hidden"
                   animate="visible"
                 >
-                  {mockUpdate.decisions.map((decision) => (
+                  {update.decisions.map((decision) => (
                     <DecisionCard key={decision.id} decision={decision} />
                   ))}
                 </motion.div>
@@ -375,7 +458,7 @@ export default function SignalDetailPage() {
               Audiences
             </h3>
             <div className="space-y-2">
-              {mockUpdate.audiences.map((audience) => (
+              {update.audiences.map((audience) => (
                 <div
                   key={audience}
                   className="flex items-center gap-2 p-2 rounded bg-surface-02"
@@ -390,13 +473,13 @@ export default function SignalDetailPage() {
           </div>
 
           {/* Delivery Log */}
-          {mockUpdate.status === "sent" && (
+          {update.status === "sent" && update.deliveryLog.length > 0 && (
             <div className="bg-surface-01 border border-border rounded-lg p-4">
               <h3 className="text-sm font-medium text-text-primary mb-3">
                 Delivery Log
               </h3>
               <div className="space-y-2">
-                {mockUpdate.deliveryLog.map((log, i) => (
+                {update.deliveryLog.map((log, i) => (
                   <div
                     key={i}
                     className="flex items-center justify-between p-2 rounded bg-surface-02"
@@ -439,20 +522,20 @@ export default function SignalDetailPage() {
               <div className="flex justify-between">
                 <span className="text-text-secondary">Created</span>
                 <span className="text-text-primary">
-                  {format(new Date(mockUpdate.createdAt), "MMM d, yyyy")}
+                  {format(new Date(update.createdAt), "MMM d, yyyy")}
                 </span>
               </div>
-              {mockUpdate.sentAt && (
+              {update.sentAt && (
                 <div className="flex justify-between">
                   <span className="text-text-secondary">Sent</span>
                   <span className="text-text-primary">
-                    {format(new Date(mockUpdate.sentAt), "MMM d, yyyy")}
+                    {format(new Date(update.sentAt), "MMM d, yyyy")}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-text-secondary">Author</span>
-                <span className="text-text-primary">{mockUpdate.author.name}</span>
+                <span className="text-text-primary">{update.author.name}</span>
               </div>
             </div>
           </div>
@@ -521,6 +604,89 @@ export default function SignalDetailPage() {
           </Button>
           <Button onClick={handleAddDecision} disabled={!newDecision.title}>
             Log Decision
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Send Update Modal */}
+      <Modal
+        open={isSendModalOpen}
+        onOpenChange={setIsSendModalOpen}
+        title="Send Update"
+        description="Add recipients to send this update via email"
+      >
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="recipient-email">Add Recipient</Label>
+            <div className="flex gap-2">
+              <Input
+                id="recipient-email"
+                type="email"
+                placeholder="email@example.com"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddRecipient();
+                  }
+                }}
+              />
+              <Button variant="secondary" onClick={handleAddRecipient}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {recipients.length > 0 && (
+            <div>
+              <Label>Recipients ({recipients.length})</Label>
+              <div className="space-y-2 mt-2 max-h-48 overflow-y-auto">
+                {recipients.map((r) => (
+                  <div
+                    key={r.email}
+                    className="flex items-center justify-between p-2 bg-surface-02 rounded"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-text-tertiary" />
+                      <span className="text-sm text-text-primary">{r.email}</span>
+                      <Badge variant="default" size="sm">
+                        {audienceLabels[r.audience].split(" ")[0]}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveRecipient(r.email)}
+                      className="p-1 h-auto"
+                    >
+                      <Trash2 className="w-3 h-3 text-coral" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {recipients.length === 0 && (
+            <div className="text-center py-6 bg-surface-02 rounded-lg">
+              <Mail className="w-8 h-8 text-text-tertiary mx-auto mb-2" />
+              <p className="text-sm text-text-secondary">
+                Add email addresses to send this update
+              </p>
+            </div>
+          )}
+        </div>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setIsSendModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSendUpdate}
+            disabled={recipients.length === 0 || isSending}
+            leftIcon={isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          >
+            {isSending ? "Sending..." : `Send to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""}`}
           </Button>
         </ModalFooter>
       </Modal>

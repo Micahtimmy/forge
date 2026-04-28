@@ -1,12 +1,14 @@
 /**
  * AI Prompt for Story Scoring
- * Version: 1.0.0
+ * Version: 1.1.0
  *
  * This prompt instructs the AI to analyze JIRA user stories against
  * a configurable rubric and return structured scores with suggestions.
  */
 
-export const PROMPT_VERSION = "1.0.0";
+import { sanitizeStoryForPrompt } from "../sanitize";
+
+export const PROMPT_VERSION = "1.1.0";
 
 export const SCORE_STORY_SYSTEM = `You are a senior agile coach and story quality expert with deep expertise in user story writing, acceptance criteria, and sprint planning.
 
@@ -90,24 +92,56 @@ export function buildScoreStoryPrompt(story: {
   epicKey: string | null;
   labels: string[] | null;
 }): string {
+  // Sanitize all user-provided content to prevent prompt injection
+  const safe = sanitizeStoryForPrompt(story);
+
   return `## Story to Analyze
 
-**Key:** ${story.key}
-**Title:** ${story.title}
+**Key:** ${safe.key}
+**Title:** ${safe.title}
 
 **Description:**
-${story.description || "[No description provided]"}
+${safe.description}
 
 **Acceptance Criteria:**
-${story.acceptanceCriteria || "[No acceptance criteria provided]"}
+${safe.acceptanceCriteria}
 
-**Story Points:** ${story.storyPoints ?? "Not estimated"}
-**Epic:** ${story.epicKey || "Not linked"}
-**Labels:** ${story.labels?.join(", ") || "None"}
+**Story Points:** ${safe.storyPoints}
+**Epic:** ${safe.epicKey}
+**Labels:** ${safe.labels}
 
 Please analyze this story and provide your scoring assessment in the XML format specified.`;
 }
 
+export type ScoreParseResult =
+  | {
+      success: true;
+      data: {
+        totalScore: number;
+        dimensions: {
+          completeness: { score: number; max: number; reasoning: string };
+          clarity: { score: number; max: number; reasoning: string };
+          estimability: { score: number; max: number; reasoning: string };
+          traceability: { score: number; max: number; reasoning: string };
+          testability: { score: number; max: number; reasoning: string };
+        };
+        suggestions: Array<{
+          type: string;
+          current: string;
+          improved: string;
+          reasoning?: string;
+        }>;
+      };
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
+/**
+ * Legacy function signature for backward compatibility
+ * @deprecated Use parseScoreResponseSafe instead
+ */
 export function parseScoreResponse(xml: string): {
   totalScore: number;
   dimensions: {
@@ -124,34 +158,99 @@ export function parseScoreResponse(xml: string): {
     reasoning?: string;
   }>;
 } {
+  const result = parseScoreResponseSafe(xml);
+  if (result.success) {
+    return result.data;
+  }
+  // Return defaults for backward compatibility, but log the error
+  console.error("[AI Parser] Score parsing failed:", result.error);
+  return {
+    totalScore: 0,
+    dimensions: {
+      completeness: { score: 0, max: 25, reasoning: "Failed to parse AI response" },
+      clarity: { score: 0, max: 25, reasoning: "Failed to parse AI response" },
+      estimability: { score: 0, max: 20, reasoning: "Failed to parse AI response" },
+      traceability: { score: 0, max: 15, reasoning: "Failed to parse AI response" },
+      testability: { score: 0, max: 15, reasoning: "Failed to parse AI response" },
+    },
+    suggestions: [],
+  };
+}
+
+/**
+ * Safely parse AI score response with explicit error handling
+ */
+export function parseScoreResponseSafe(xml: string): ScoreParseResult {
+  // Validate basic XML structure
+  if (!xml || typeof xml !== "string") {
+    return { success: false, error: "Empty or invalid response from AI" };
+  }
+
+  if (!xml.includes("<analysis>") || !xml.includes("</analysis>")) {
+    return { success: false, error: "AI response missing expected XML structure" };
+  }
+
   // Extract total score
   const totalScoreMatch = xml.match(/<total_score>(\d+)<\/total_score>/);
-  const totalScore = totalScoreMatch ? parseInt(totalScoreMatch[1], 10) : 0;
+  if (!totalScoreMatch) {
+    return { success: false, error: "Could not extract total score from AI response" };
+  }
+
+  const totalScore = parseInt(totalScoreMatch[1], 10);
+
+  // Validate score is in range
+  if (totalScore < 0 || totalScore > 100) {
+    return { success: false, error: `AI returned invalid score: ${totalScore}` };
+  }
 
   // Extract dimensions
-  const extractDimension = (name: string): { score: number; max: number; reasoning: string } => {
+  const extractDimension = (name: string): { score: number; max: number; reasoning: string } | null => {
     const pattern = new RegExp(
       `<${name}\\s+score="(\\d+)"\\s+max="(\\d+)"[^>]*>\\s*<reasoning>([\\s\\S]*?)<\\/reasoning>\\s*<\\/${name}>`,
       "i"
     );
     const match = xml.match(pattern);
     if (match) {
+      const score = parseInt(match[1], 10);
+      const max = parseInt(match[2], 10);
+      // Validate dimension score doesn't exceed max
+      if (score > max) {
+        return null;
+      }
       return {
-        score: parseInt(match[1], 10),
-        max: parseInt(match[2], 10),
+        score,
+        max,
         reasoning: match[3].trim(),
       };
     }
-    return { score: 0, max: 0, reasoning: "" };
+    return null;
   };
 
+  const completeness = extractDimension("completeness");
+  const clarity = extractDimension("clarity");
+  const estimability = extractDimension("estimability");
+  const traceability = extractDimension("traceability");
+  const testability = extractDimension("testability");
+
+  // Require at least the main dimensions to be present
+  if (!completeness || !clarity || !testability) {
+    return { success: false, error: "AI response missing required scoring dimensions" };
+  }
+
   const dimensions = {
-    completeness: extractDimension("completeness"),
-    clarity: extractDimension("clarity"),
-    estimability: extractDimension("estimability"),
-    traceability: extractDimension("traceability"),
-    testability: extractDimension("testability"),
+    completeness,
+    clarity,
+    estimability: estimability || { score: 0, max: 20, reasoning: "Not evaluated" },
+    traceability: traceability || { score: 0, max: 15, reasoning: "Not evaluated" },
+    testability,
   };
+
+  // Validate that dimensions sum reasonably close to total (allow some rounding)
+  const dimensionSum = Object.values(dimensions).reduce((sum, d) => sum + d.score, 0);
+  if (Math.abs(dimensionSum - totalScore) > 5) {
+    // Log warning but don't fail - AI might round differently
+    console.warn(`[AI Parser] Dimension sum (${dimensionSum}) differs from total (${totalScore})`);
+  }
 
   // Extract suggestions
   const suggestions: Array<{
@@ -172,5 +271,8 @@ export function parseScoreResponse(xml: string): {
     });
   }
 
-  return { totalScore, dimensions, suggestions };
+  return {
+    success: true,
+    data: { totalScore, dimensions, suggestions },
+  };
 }

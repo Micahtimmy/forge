@@ -12,61 +12,17 @@ import {
   Lightbulb,
   Copy,
   Check,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreRing } from "@/components/ui/score-ring";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsListUnderline, TabsTriggerUnderline, TabsContent } from "@/components/ui/tabs";
 import { useToastActions } from "@/components/ui/toast";
+import { useStory } from "@/hooks/use-stories";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
-
-// Mock data - replace with real data fetching
-const mockStory = {
-  id: "1",
-  jiraKey: "PROJ-123",
-  title: "Implement user authentication flow with OAuth2",
-  description: `As a user, I want to sign in with Google so that I can access my account securely without remembering another password.
-
-**Technical Notes:**
-- Use NextAuth.js for OAuth implementation
-- Support Google OAuth provider initially
-- Store session tokens securely in HTTP-only cookies`,
-  acceptanceCriteria: `- User can click "Sign in with Google" button
-- User is redirected to Google OAuth consent screen
-- After consent, user is redirected back and logged in
-- Session persists across browser refreshes`,
-  storyPoints: 5,
-  status: "In Progress",
-  assignee: { name: "John Doe", avatar: null },
-  epic: { key: "AUTH", name: "Authentication & Authorization" },
-  sprint: { id: "sprint-22", name: "Sprint 22" },
-  labels: ["security", "auth", "mvp"],
-  jiraUrl: "https://company.atlassian.net/browse/PROJ-123",
-  score: {
-    totalScore: 85,
-    scoredAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    dimensions: {
-      completeness: { score: 22, max: 25, reasoning: "Story has title, description, and acceptance criteria. Missing explicit definition of done." },
-      clarity: { score: 20, max: 25, reasoning: "Clear user story format with technical notes. Language is specific and actionable." },
-      estimability: { score: 18, max: 20, reasoning: "5 story points assigned. Scope is well-defined and achievable within a sprint." },
-      traceability: { score: 14, max: 15, reasoning: "Linked to AUTH epic, has appropriate labels, assigned to sprint." },
-      testability: { score: 11, max: 15, reasoning: "Acceptance criteria are testable but could be more specific about error cases." },
-    },
-    suggestions: [
-      {
-        type: "acceptance_criteria",
-        current: "Session persists across browser refreshes",
-        improved: "Given a logged-in user, when they close and reopen the browser within 24 hours, then they remain logged in without re-authenticating",
-      },
-      {
-        type: "acceptance_criteria",
-        current: "",
-        improved: "Given a user denies OAuth consent, when redirected back to the app, then they see a clear error message and option to retry",
-      },
-    ],
-  },
-};
 
 function DimensionCard({
   name,
@@ -77,7 +33,7 @@ function DimensionCard({
   name: string;
   score: number;
   max: number;
-  reasoning: string;
+  reasoning: string | null;
 }) {
   const percentage = (score / max) * 100;
   const tier = percentage >= 85 ? "excellent" : percentage >= 70 ? "good" : percentage >= 50 ? "fair" : "poor";
@@ -114,7 +70,9 @@ function DimensionCard({
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
         />
       </div>
-      <p className="text-xs text-text-secondary leading-relaxed">{reasoning}</p>
+      <p className="text-xs text-text-secondary leading-relaxed">
+        {reasoning || "No reasoning available"}
+      </p>
     </motion.div>
   );
 }
@@ -182,6 +140,33 @@ function SuggestionCard({
   );
 }
 
+function LoadingState() {
+  return (
+    <div>
+      <div className="mb-6">
+        <Skeleton className="h-8 w-32 mb-4" />
+        <div className="flex items-start gap-4">
+          <Skeleton className="w-20 h-20 rounded-full" />
+          <div className="flex-1">
+            <Skeleton className="h-4 w-24 mb-2" />
+            <Skeleton className="h-6 w-96 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+        <div>
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StoryDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -189,17 +174,33 @@ export default function StoryDetailPage() {
   const [isRescoring, setIsRescoring] = useState(false);
   const [activeTab, setActiveTab] = useState("breakdown");
 
-  // TODO: Use storyId to fetch real story data from API instead of mock data
   const storyId = params.id as string;
-  // Placeholder to mark storyId as used until real data fetching is implemented
-  void storyId;
+  const { data: story, isLoading, error, refetch } = useStory(storyId);
 
   const handleRescore = async () => {
+    if (!story) return;
+
     setIsRescoring(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsRescoring(false);
-    toast.success("Story rescored", "Quality score has been updated");
+    try {
+      const response = await fetch(`/api/stories/${storyId}/score`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to score story");
+      }
+
+      toast.success("Story rescored", "Quality score has been updated");
+      refetch();
+    } catch (err) {
+      toast.error(
+        "Scoring failed",
+        err instanceof Error ? err.message : "Unable to score story"
+      );
+    } finally {
+      setIsRescoring(false);
+    }
   };
 
   const formatTime = (isoString: string) => {
@@ -212,9 +213,42 @@ export default function StoryDetailPage() {
     });
   };
 
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  if (error || !story) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <AlertCircle className="w-12 h-12 text-coral mb-4" />
+        <h2 className="text-lg font-medium text-text-primary mb-2">
+          Story not found
+        </h2>
+        <p className="text-sm text-text-secondary mb-4">
+          {error instanceof Error ? error.message : "Unable to load story details"}
+        </p>
+        <Button variant="secondary" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Go back
+        </Button>
+      </div>
+    );
+  }
+
+  const totalScore = story.score?.totalScore || 0;
+  const suggestions = story.score?.suggestions || [];
+  const dimensions = story.score
+    ? {
+        completeness: story.score.completeness,
+        clarity: story.score.clarity,
+        estimability: story.score.estimability,
+        traceability: story.score.traceability,
+        testability: story.score.testability,
+      }
+    : null;
+
   return (
     <div>
-      {/* Header */}
       <div className="mb-6">
         <Button
           variant="ghost"
@@ -228,30 +262,30 @@ export default function StoryDetailPage() {
 
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <ScoreRing score={mockStory.score.totalScore} size="lg" />
+            <ScoreRing score={totalScore} size="lg" />
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm font-mono text-text-tertiary">
-                  {mockStory.jiraKey}
+                  {story.jiraKey}
                 </span>
-                <Badge variant={mockStory.score.totalScore >= 70 ? "excellent" : "fair"}>
-                  {mockStory.score.totalScore >= 85
+                <Badge variant={totalScore >= 70 ? "excellent" : "fair"}>
+                  {totalScore >= 85
                     ? "Excellent"
-                    : mockStory.score.totalScore >= 70
+                    : totalScore >= 70
                     ? "Good"
-                    : mockStory.score.totalScore >= 50
+                    : totalScore >= 50
                     ? "Needs Work"
                     : "Poor"}
                 </Badge>
-                <Badge variant="default">{mockStory.status}</Badge>
+                <Badge variant="default">{story.status}</Badge>
               </div>
               <h1 className="text-xl font-display font-bold text-text-primary mb-2">
-                {mockStory.title}
+                {story.title}
               </h1>
               <div className="flex items-center gap-4 text-sm text-text-secondary">
-                <span>{mockStory.epic.name}</span>
-                <span>{mockStory.sprint.name}</span>
-                <span>{mockStory.storyPoints} points</span>
+                {story.epicName && <span>{story.epicName}</span>}
+                {story.sprintName && <span>{story.sprintName}</span>}
+                {story.storyPoints && <span>{story.storyPoints} points</span>}
               </div>
             </div>
           </div>
@@ -261,15 +295,26 @@ export default function StoryDetailPage() {
               variant="secondary"
               size="sm"
               onClick={handleRescore}
-              isLoading={isRescoring}
-              leftIcon={<RefreshCw className="w-4 h-4" />}
+              disabled={isRescoring}
+              leftIcon={
+                isRescoring ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )
+              }
             >
-              Rescore
+              {isRescoring ? "Scoring..." : "Rescore"}
             </Button>
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.open(mockStory.jiraUrl, "_blank")}
+              onClick={() =>
+                window.open(
+                  `https://company.atlassian.net/browse/${story.jiraKey}`,
+                  "_blank"
+                )
+              }
               leftIcon={<ExternalLink className="w-4 h-4" />}
             >
               Open in JIRA
@@ -278,27 +323,25 @@ export default function StoryDetailPage() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Story Details */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Description */}
           <div className="bg-surface-01 border border-border rounded-lg p-4">
             <h3 className="text-sm font-medium text-text-primary mb-2">
               Description
             </h3>
             <div className="text-sm text-text-secondary whitespace-pre-wrap">
-              {mockStory.description}
+              {story.description || (
+                <span className="text-text-tertiary italic">No description</span>
+              )}
             </div>
           </div>
 
-          {/* Acceptance Criteria */}
           <div className="bg-surface-01 border border-border rounded-lg p-4">
             <h3 className="text-sm font-medium text-text-primary mb-2">
               Acceptance Criteria
             </h3>
             <div className="text-sm text-text-secondary whitespace-pre-wrap">
-              {mockStory.acceptanceCriteria || (
+              {story.acceptanceCriteria || (
                 <span className="text-coral flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
                   No acceptance criteria defined
@@ -307,84 +350,108 @@ export default function StoryDetailPage() {
             </div>
           </div>
 
-          {/* Labels */}
-          <div className="flex items-center gap-2">
-            {mockStory.labels.map((label) => (
-              <Badge key={label} variant="default">
-                {label}
-              </Badge>
-            ))}
-          </div>
+          {story.labels && story.labels.length > 0 && (
+            <div className="flex items-center gap-2">
+              {story.labels.map((label) => (
+                <Badge key={label} variant="default">
+                  {label}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Right: Score Analysis */}
         <div>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsListUnderline>
-              <TabsTriggerUnderline value="breakdown">
-                Breakdown
-              </TabsTriggerUnderline>
-              <TabsTriggerUnderline value="suggestions">
-                Suggestions
-                {mockStory.score.suggestions.length > 0 && (
-                  <Badge variant="iris" size="sm" className="ml-1">
-                    {mockStory.score.suggestions.length}
-                  </Badge>
-                )}
-              </TabsTriggerUnderline>
-            </TabsListUnderline>
-
-            <TabsContent value="breakdown" className="mt-4">
-              <motion.div
-                className="space-y-3"
-                variants={staggerContainer}
-                initial="hidden"
-                animate="visible"
+          {!story.score ? (
+            <div className="bg-surface-01 border border-border rounded-lg p-6 text-center">
+              <AlertCircle className="w-12 h-12 text-amber mx-auto mb-3" />
+              <h3 className="text-sm font-medium text-text-primary mb-2">
+                Not scored yet
+              </h3>
+              <p className="text-xs text-text-secondary mb-4">
+                This story hasn&apos;t been analyzed by the AI scoring engine.
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleRescore}
+                isLoading={isRescoring}
               >
-                {Object.entries(mockStory.score.dimensions).map(([key, dim]) => (
-                  <DimensionCard
-                    key={key}
-                    name={key}
-                    score={dim.score}
-                    max={dim.max}
-                    reasoning={dim.reasoning}
-                  />
-                ))}
-              </motion.div>
+                Score Now
+              </Button>
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsListUnderline>
+                <TabsTriggerUnderline value="breakdown">
+                  Breakdown
+                </TabsTriggerUnderline>
+                <TabsTriggerUnderline value="suggestions">
+                  Suggestions
+                  {suggestions.length > 0 && (
+                    <Badge variant="iris" size="sm" className="ml-1">
+                      {suggestions.length}
+                    </Badge>
+                  )}
+                </TabsTriggerUnderline>
+              </TabsListUnderline>
 
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-xs text-text-tertiary">
-                  Last scored {formatTime(mockStory.score.scoredAt)}
-                </p>
-              </div>
-            </TabsContent>
+              <TabsContent value="breakdown" className="mt-4">
+                {dimensions && (
+                  <motion.div
+                    className="space-y-3"
+                    variants={staggerContainer}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    {Object.entries(dimensions).map(([key, dim]) =>
+                      dim ? (
+                        <DimensionCard
+                          key={key}
+                          name={key}
+                          score={dim.score}
+                          max={dim.max}
+                          reasoning={dim.reasoning}
+                        />
+                      ) : null
+                    )}
+                  </motion.div>
+                )}
 
-            <TabsContent value="suggestions" className="mt-4">
-              {mockStory.score.suggestions.length === 0 ? (
-                <div className="text-center py-8">
-                  <CheckCircle2 className="w-12 h-12 text-jade mx-auto mb-2" />
-                  <p className="text-sm text-text-secondary">
-                    No suggestions - this story meets quality standards
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs text-text-tertiary">
+                    Last scored {formatTime(story.score.scoredAt)}
                   </p>
                 </div>
-              ) : (
-                <motion.div
-                  className="space-y-3"
-                  variants={staggerContainer}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {mockStory.score.suggestions.map((suggestion, i) => (
-                    <SuggestionCard
-                      key={i}
-                      suggestion={suggestion}
-                      index={i}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+
+              <TabsContent value="suggestions" className="mt-4">
+                {suggestions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle2 className="w-12 h-12 text-jade mx-auto mb-2" />
+                    <p className="text-sm text-text-secondary">
+                      No suggestions - this story meets quality standards
+                    </p>
+                  </div>
+                ) : (
+                  <motion.div
+                    className="space-y-3"
+                    variants={staggerContainer}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    {suggestions.map((suggestion, i) => (
+                      <SuggestionCard
+                        key={i}
+                        suggestion={suggestion}
+                        index={i}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </div>
     </div>

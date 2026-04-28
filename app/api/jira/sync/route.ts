@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { syncStoriesFromJira, syncSprintsFromJira } from "@/lib/jira/sync";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
@@ -91,6 +92,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Capture JIRA sync errors - these are important to track
+    Sentry.captureException(error, {
+      tags: { module: "jira", operation: "sync" },
+    });
 
     return NextResponse.json(
       {

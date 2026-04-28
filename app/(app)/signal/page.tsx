@@ -10,12 +10,13 @@ import {
   CheckCircle2,
   Archive,
   MoreHorizontal,
+  AlertCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -25,58 +26,53 @@ import {
 } from "@/components/ui/dropdown";
 import { Tabs, TabsListUnderline, TabsTriggerUnderline, TabsContent } from "@/components/ui/tabs";
 import { EmptySignalState } from "@/components/ui/empty-state";
+import { useToastActions } from "@/components/ui/toast";
+import { useSignalUpdates, useDeleteUpdate } from "@/hooks/use-signal";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import { formatDistanceToNow } from "date-fns";
-import { audienceLabels, type AudienceType } from "@/types/signal";
 
 type UpdateStatus = "draft" | "sent" | "archived";
 
-// Mock data
-const mockUpdates: Array<{
+interface SignalUpdateItem {
   id: string;
-  sprintRef: string;
-  audiences: AudienceType[];
+  sprintRef: string | null;
   status: UpdateStatus;
   sentAt: string | null;
   createdAt: string;
-  authorName: string;
-}> = [
-  {
-    id: "1",
-    sprintRef: "Sprint 22",
-    audiences: ["executive", "team"],
-    status: "sent",
-    sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    authorName: "Jane Doe",
-  },
-  {
-    id: "2",
-    sprintRef: "Sprint 21",
-    audiences: ["executive", "team", "client"],
-    status: "sent",
-    sentAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
-    authorName: "John Smith",
-  },
-  {
-    id: "3",
-    sprintRef: "Sprint 22",
-    audiences: ["board"],
-    status: "draft",
-    sentAt: null,
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    authorName: "Jane Doe",
-  },
-];
+}
+
+function LoadingState() {
+  return (
+    <div className="space-y-2">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-4 p-4 rounded-lg border border-border bg-surface-01">
+          <Skeleton className="w-8 h-8 rounded-full" />
+          <div className="flex-1">
+            <Skeleton className="h-5 w-32 mb-2" />
+            <div className="flex gap-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          </div>
+          <div className="text-right">
+            <Skeleton className="h-4 w-24 mb-1" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function UpdateRow({
   update,
   onClick,
+  onDelete,
 }: {
-  update: (typeof mockUpdates)[0];
+  update: SignalUpdateItem;
   onClick: () => void;
+  onDelete: () => void;
 }) {
   return (
     <motion.div
@@ -105,28 +101,10 @@ function UpdateRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-text-primary">{update.sprintRef}</span>
+          <span className="font-medium text-text-primary">{update.sprintRef || "Update"}</span>
           <Badge variant={update.status === "sent" ? "excellent" : "fair"} size="sm">
             {update.status}
           </Badge>
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          {update.audiences.map((audience) => (
-            <span
-              key={audience}
-              className="text-xs px-1.5 py-0.5 rounded bg-surface-03 text-text-secondary"
-            >
-              {audienceLabels[audience].split(" ")[0]}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Meta */}
-      <div className="text-right">
-        <div className="flex items-center gap-2 text-sm text-text-secondary">
-          <Avatar size="xs" alt={update.authorName} />
-          <span>{update.authorName}</span>
         </div>
         <div className="text-xs text-text-tertiary mt-1">
           {update.sentAt
@@ -134,6 +112,9 @@ function UpdateRow({
             : `Created ${formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}`}
         </div>
       </div>
+
+      {/* Meta - Spacer */}
+      <div className="flex-1" />
 
       {/* Actions */}
       <DropdownMenu>
@@ -146,10 +127,10 @@ function UpdateRow({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>View Details</DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick(); }}>View Details</DropdownMenuItem>
           <DropdownMenuItem>Duplicate</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-coral">Delete</DropdownMenuItem>
+          <DropdownMenuItem className="text-coral" onClick={(e) => { e.stopPropagation(); onDelete(); }}>Delete</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </motion.div>
@@ -158,18 +139,44 @@ function UpdateRow({
 
 export default function SignalPage() {
   const router = useRouter();
+  const toast = useToastActions();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "sent" | "draft">("all");
 
-  const filteredUpdates = mockUpdates.filter((update) => {
-    if (statusFilter !== "all" && update.status !== statusFilter) return false;
+  const { data: updatesData, isLoading, error } = useSignalUpdates({
+    status: statusFilter === "all" ? undefined : statusFilter,
+  });
+  const deleteUpdate = useDeleteUpdate();
+
+  const updates: SignalUpdateItem[] = (updatesData?.updates || []).map((u) => ({
+    id: u.id,
+    sprintRef: u.sprintRef,
+    status: u.status as UpdateStatus,
+    sentAt: u.sentAt || null,
+    createdAt: u.createdAt,
+  }));
+
+  const filteredUpdates = updates.filter((update) => {
     if (
       searchQuery &&
-      !update.sprintRef.toLowerCase().includes(searchQuery.toLowerCase())
+      !(update.sprintRef || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
       return false;
     return true;
   });
+
+  const handleDelete = async (updateId: string) => {
+    try {
+      await deleteUpdate.mutateAsync(updateId);
+      toast.success("Update deleted");
+    } catch (err) {
+      toast.error("Failed to delete", err instanceof Error ? err.message : "Unknown error");
+    }
+  };
+
+  const allUpdatesCount = updates.length;
+  const sentCount = updates.filter((u) => u.status === "sent").length;
+  const draftCount = updates.filter((u) => u.status === "draft").length;
 
   return (
     <div>
@@ -205,25 +212,32 @@ export default function SignalPage() {
           <TabsTriggerUnderline value="all">
             All Updates
             <Badge variant="default" size="sm" className="ml-2">
-              {mockUpdates.length}
+              {allUpdatesCount}
             </Badge>
           </TabsTriggerUnderline>
           <TabsTriggerUnderline value="sent">
             Sent
             <Badge variant="excellent" size="sm" className="ml-2">
-              {mockUpdates.filter((u) => u.status === "sent").length}
+              {sentCount}
             </Badge>
           </TabsTriggerUnderline>
           <TabsTriggerUnderline value="draft">
             Drafts
             <Badge variant="fair" size="sm" className="ml-2">
-              {mockUpdates.filter((u) => u.status === "draft").length}
+              {draftCount}
             </Badge>
           </TabsTriggerUnderline>
         </TabsListUnderline>
 
         <TabsContent value={statusFilter} className="mt-4">
-          {filteredUpdates.length === 0 ? (
+          {isLoading ? (
+            <LoadingState />
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <AlertCircle className="w-12 h-12 text-coral mb-4" />
+              <p className="text-text-secondary">Failed to load updates</p>
+            </div>
+          ) : filteredUpdates.length === 0 ? (
             <EmptySignalState onCreate={() => router.push("/signal/new")} />
           ) : (
             <motion.div
@@ -237,6 +251,7 @@ export default function SignalPage() {
                   key={update.id}
                   update={update}
                   onClick={() => router.push(`/signal/${update.id}`)}
+                  onDelete={() => handleDelete(update.id)}
                 />
               ))}
             </motion.div>

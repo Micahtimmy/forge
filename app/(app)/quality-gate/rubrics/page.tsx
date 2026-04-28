@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -12,6 +12,7 @@ import {
   ChevronUp,
   GripVertical,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { Input, Label } from "@/components/ui/input";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,6 +30,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown";
 import { useToastActions } from "@/components/ui/toast";
+import {
+  useRubrics,
+  useCreateRubric,
+  useUpdateRubric,
+  useDeleteRubric,
+  type Rubric as RubricFromAPI,
+} from "@/hooks/use-rubrics";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 
@@ -48,38 +57,22 @@ interface Rubric {
   createdAt: string;
 }
 
-// Mock data
-const mockRubrics: Rubric[] = [
-  {
-    id: "default",
-    name: "Standard Quality Rubric",
-    description: "The default rubric for scoring user stories based on agile best practices",
-    isDefault: true,
+function transformRubricFromAPI(apiRubric: RubricFromAPI): Rubric {
+  return {
+    id: apiRubric.id,
+    name: apiRubric.name,
+    description: apiRubric.description || "",
+    isDefault: apiRubric.isDefault,
     dimensions: [
-      { id: "completeness", name: "Completeness", description: "Story has all required fields filled out", maxScore: 25, enabled: true },
-      { id: "clarity", name: "Clarity", description: "Story is clearly written and easily understood", maxScore: 25, enabled: true },
-      { id: "estimability", name: "Estimability", description: "Story can be reasonably estimated", maxScore: 20, enabled: true },
-      { id: "traceability", name: "Traceability", description: "Story is linked to epics, has labels, assigned", maxScore: 15, enabled: true },
-      { id: "testability", name: "Testability", description: "Story has verifiable acceptance criteria", maxScore: 15, enabled: true },
+      { id: "completeness", name: "Completeness", description: "Story has all required fields", maxScore: apiRubric.completenessWeight, enabled: true },
+      { id: "clarity", name: "Clarity", description: "Story is clearly written", maxScore: apiRubric.clarityWeight, enabled: true },
+      { id: "estimability", name: "Estimability", description: "Story can be estimated", maxScore: apiRubric.estimabilityWeight, enabled: true },
+      { id: "traceability", name: "Traceability", description: "Story is properly linked", maxScore: apiRubric.traceabilityWeight, enabled: true },
+      { id: "testability", name: "Testability", description: "Story has testable criteria", maxScore: apiRubric.testabilityWeight, enabled: true },
     ],
-    createdAt: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "strict",
-    name: "Strict Engineering Rubric",
-    description: "Higher bar for technical stories requiring detailed specifications",
-    isDefault: false,
-    dimensions: [
-      { id: "completeness", name: "Completeness", description: "Story has all required fields filled out", maxScore: 20, enabled: true },
-      { id: "clarity", name: "Clarity", description: "Story is clearly written and easily understood", maxScore: 20, enabled: true },
-      { id: "estimability", name: "Estimability", description: "Story can be reasonably estimated", maxScore: 15, enabled: true },
-      { id: "traceability", name: "Traceability", description: "Story is linked to epics, has labels, assigned", maxScore: 15, enabled: true },
-      { id: "testability", name: "Testability", description: "Story has verifiable acceptance criteria", maxScore: 20, enabled: true },
-      { id: "technical", name: "Technical Clarity", description: "Technical requirements and dependencies are documented", maxScore: 10, enabled: true },
-    ],
-    createdAt: "2026-02-15T00:00:00Z",
-  },
-];
+    createdAt: apiRubric.createdAt,
+  };
+}
 
 function DimensionRow({
   dimension,
@@ -267,64 +260,107 @@ function RubricCard({
   );
 }
 
+function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="bg-surface-01 border border-border rounded-lg p-5">
+          <Skeleton className="h-6 w-48 mb-2" />
+          <Skeleton className="h-4 w-64 mb-4" />
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((j) => (
+              <div key={j} className="flex justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-12" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function RubricsPage() {
   const toast = useToastActions();
-  const [rubrics, setRubrics] = useState(mockRubrics);
+  const { data: rubricsData, isLoading, error } = useRubrics();
+  const createRubric = useCreateRubric();
+  const updateRubric = useUpdateRubric();
+  const deleteRubric = useDeleteRubric();
+
+  const [localRubrics, setLocalRubrics] = useState<Rubric[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRubric, setEditingRubric] = useState<Rubric | null>(null);
   const [newRubricName, setNewRubricName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleCreateRubric = () => {
-    const newRubric: Rubric = {
-      id: `rubric-${Date.now()}`,
-      name: newRubricName,
-      description: "Custom scoring rubric",
-      isDefault: false,
-      dimensions: [
-        { id: "completeness", name: "Completeness", description: "Story has all required fields", maxScore: 25, enabled: true },
-        { id: "clarity", name: "Clarity", description: "Story is clearly written", maxScore: 25, enabled: true },
-        { id: "estimability", name: "Estimability", description: "Story can be estimated", maxScore: 20, enabled: true },
-        { id: "traceability", name: "Traceability", description: "Story is properly linked", maxScore: 15, enabled: true },
-        { id: "testability", name: "Testability", description: "Story has testable criteria", maxScore: 15, enabled: true },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-    setRubrics([...rubrics, newRubric]);
-    setIsCreateModalOpen(false);
-    setNewRubricName("");
-    setEditingRubric(newRubric);
-    toast.success("Rubric created", "You can now customize the dimensions");
+  useEffect(() => {
+    if (rubricsData?.rubrics) {
+      setLocalRubrics(rubricsData.rubrics.map(transformRubricFromAPI));
+    }
+  }, [rubricsData]);
+
+  const rubrics = localRubrics;
+
+  const handleCreateRubric = async () => {
+    try {
+      const result = await createRubric.mutateAsync({
+        name: newRubricName,
+        description: "Custom scoring rubric",
+      });
+      setIsCreateModalOpen(false);
+      setNewRubricName("");
+      if (result.rubric) {
+        setEditingRubric(transformRubricFromAPI(result.rubric));
+      }
+      toast.success("Rubric created", "You can now customize the dimensions");
+    } catch (err) {
+      toast.error("Failed to create rubric", err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
-  const handleDuplicateRubric = (rubric: Rubric) => {
-    const duplicate: Rubric = {
-      ...rubric,
-      id: `rubric-${crypto.randomUUID()}`,
-      name: `${rubric.name} (Copy)`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-    };
-    setRubrics([...rubrics, duplicate]);
-    toast.success("Rubric duplicated", "You can now customize the copy");
+  const handleDuplicateRubric = async (rubric: Rubric) => {
+    try {
+      const dim = rubric.dimensions.reduce((acc, d) => {
+        acc[`${d.id}Weight`] = d.maxScore;
+        return acc;
+      }, {} as Record<string, number>);
+
+      await createRubric.mutateAsync({
+        name: `${rubric.name} (Copy)`,
+        description: rubric.description,
+        completenessWeight: dim.completenessWeight,
+        clarityWeight: dim.clarityWeight,
+        estimabilityWeight: dim.estimabilityWeight,
+        traceabilityWeight: dim.traceabilityWeight,
+        testabilityWeight: dim.testabilityWeight,
+      });
+      toast.success("Rubric duplicated", "You can now customize the copy");
+    } catch (err) {
+      toast.error("Failed to duplicate", err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
-  const handleSetDefault = (rubricId: string) => {
-    setRubrics(
-      rubrics.map((r) => ({
-        ...r,
-        isDefault: r.id === rubricId,
-      }))
-    );
-    toast.success("Default rubric updated", "New stories will use this rubric");
+  const handleSetDefault = async (rubricId: string) => {
+    try {
+      await updateRubric.mutateAsync({ rubricId, data: { isDefault: true } });
+      toast.success("Default rubric updated", "New stories will use this rubric");
+    } catch (err) {
+      toast.error("Failed to update", err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
-  const handleDeleteRubric = (rubricId: string) => {
+  const handleDeleteRubric = async (rubricId: string) => {
     if (rubrics.find((r) => r.id === rubricId)?.isDefault) {
       toast.error("Cannot delete", "Default rubric cannot be deleted");
       return;
     }
-    setRubrics(rubrics.filter((r) => r.id !== rubricId));
-    toast.success("Rubric deleted");
+    try {
+      await deleteRubric.mutateAsync(rubricId);
+      toast.success("Rubric deleted");
+    } catch (err) {
+      toast.error("Failed to delete", err instanceof Error ? err.message : "Unknown error");
+    }
   };
 
   const handleUpdateDimension = (
@@ -332,7 +368,7 @@ export default function RubricsPage() {
     dimensionId: string,
     updates: Partial<Dimension>
   ) => {
-    setRubrics(
+    setLocalRubrics(
       rubrics.map((r) =>
         r.id === rubricId
           ? {
@@ -344,10 +380,18 @@ export default function RubricsPage() {
           : r
       )
     );
+    if (editingRubric?.id === rubricId) {
+      setEditingRubric({
+        ...editingRubric,
+        dimensions: editingRubric.dimensions.map((d) =>
+          d.id === dimensionId ? { ...d, ...updates } : d
+        ),
+      });
+    }
   };
 
   const handleRemoveDimension = (rubricId: string, dimensionId: string) => {
-    setRubrics(
+    setLocalRubrics(
       rubrics.map((r) =>
         r.id === rubricId
           ? {
@@ -357,6 +401,12 @@ export default function RubricsPage() {
           : r
       )
     );
+    if (editingRubric?.id === rubricId) {
+      setEditingRubric({
+        ...editingRubric,
+        dimensions: editingRubric.dimensions.filter((d) => d.id !== dimensionId),
+      });
+    }
   };
 
   const handleAddDimension = (rubricId: string) => {
@@ -367,14 +417,76 @@ export default function RubricsPage() {
       maxScore: 10,
       enabled: true,
     };
-    setRubrics(
+    setLocalRubrics(
       rubrics.map((r) =>
         r.id === rubricId
           ? { ...r, dimensions: [...r.dimensions, newDimension] }
           : r
       )
     );
+    if (editingRubric?.id === rubricId) {
+      setEditingRubric({
+        ...editingRubric,
+        dimensions: [...editingRubric.dimensions, newDimension],
+      });
+    }
   };
+
+  const handleSaveEditing = async () => {
+    if (!editingRubric) return;
+    setIsSaving(true);
+    try {
+      const weights: Record<string, number> = {};
+      for (const dim of editingRubric.dimensions) {
+        if (dim.enabled) {
+          weights[`${dim.id}Weight`] = dim.maxScore;
+        }
+      }
+      await updateRubric.mutateAsync({
+        rubricId: editingRubric.id,
+        data: {
+          completenessWeight: weights.completenessWeight ?? 0,
+          clarityWeight: weights.clarityWeight ?? 0,
+          estimabilityWeight: weights.estimabilityWeight ?? 0,
+          traceabilityWeight: weights.traceabilityWeight ?? 0,
+          testabilityWeight: weights.testabilityWeight ?? 0,
+        },
+      });
+      toast.success("Rubric saved", "Changes have been applied");
+      setEditingRubric(null);
+    } catch (err) {
+      toast.error("Failed to save", err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div>
+        <PageHeader
+          title="Quality Rubrics"
+          description="Configure scoring dimensions and weights for story analysis"
+        />
+        <LoadingState />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <PageHeader
+          title="Quality Rubrics"
+          description="Configure scoring dimensions and weights for story analysis"
+        />
+        <div className="flex flex-col items-center justify-center py-12">
+          <AlertCircle className="w-12 h-12 text-coral mb-4" />
+          <p className="text-text-secondary">Failed to load rubrics</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -401,9 +513,14 @@ export default function RubricsPage() {
                 {editingRubric.description}
               </p>
             </div>
-            <Button variant="secondary" onClick={() => setEditingRubric(null)}>
-              Done Editing
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={() => setEditingRubric(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEditing} isLoading={isSaving}>
+                Save Changes
+              </Button>
+            </div>
           </div>
 
           <div className="bg-surface-01 border border-border rounded-lg p-4 mb-4">

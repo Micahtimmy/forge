@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -35,151 +34,9 @@ import {
 import { SkeletonStoryCard } from "@/components/ui/skeleton";
 import { EmptyStoriesState } from "@/components/ui/empty-state";
 import { useQualityGateStore } from "@/stores/quality-gate-store";
+import { useStories, useSprints, useStoryStats } from "@/hooks/use-stories";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
-import type { StoryWithScore } from "@/types/story";
-
-// Mock data
-const mockStories: StoryWithScore[] = [
-  {
-    id: "1",
-    workspaceId: "ws-1",
-    jiraId: "10001",
-    jiraKey: "PROJ-123",
-    title: "Implement user authentication flow with OAuth2",
-    description: "As a user, I want to sign in with Google so that I can access my account",
-    acceptanceCriteria: "User can sign in with Google OAuth",
-    storyPoints: 5,
-    status: "In Progress",
-    assigneeId: "user-1",
-    epicKey: "AUTH",
-    sprintId: "sprint-22",
-    labels: ["security", "auth"],
-    jiraUpdatedAt: new Date().toISOString(),
-    syncedAt: new Date().toISOString(),
-    score: {
-      id: "score-1",
-      storyId: "1",
-      rubricId: "rubric-1",
-      totalScore: 85,
-      completeness: 22,
-      clarity: 20,
-      estimability: 18,
-      traceability: 14,
-      testability: 11,
-      aiSuggestions: null,
-      scoredAt: new Date().toISOString(),
-    },
-  },
-  {
-    id: "2",
-    workspaceId: "ws-1",
-    jiraId: "10002",
-    jiraKey: "PROJ-124",
-    title: "Add payment gateway integration",
-    description: "Handle payments",
-    acceptanceCriteria: null,
-    storyPoints: 8,
-    status: "To Do",
-    assigneeId: null,
-    epicKey: "PAYMENTS",
-    sprintId: "sprint-22",
-    labels: ["payments"],
-    jiraUpdatedAt: new Date().toISOString(),
-    syncedAt: new Date().toISOString(),
-    score: {
-      id: "score-2",
-      storyId: "2",
-      rubricId: "rubric-1",
-      totalScore: 42,
-      completeness: 10,
-      clarity: 8,
-      estimability: 12,
-      traceability: 8,
-      testability: 4,
-      aiSuggestions: [
-        {
-          type: "acceptance_criteria",
-          current: "",
-          improved: "Given a user is on the checkout page, when they enter valid payment details and click Pay, then the payment is processed within 5 seconds and a confirmation is shown",
-        },
-      ],
-      scoredAt: new Date().toISOString(),
-    },
-  },
-  {
-    id: "3",
-    workspaceId: "ws-1",
-    jiraId: "10003",
-    jiraKey: "PROJ-125",
-    title: "Create dashboard analytics with charts and KPIs",
-    description: "As a product manager, I want to see key metrics on the dashboard so I can make data-driven decisions",
-    acceptanceCriteria: "Dashboard shows DAU, WAU, MAU metrics with trend charts",
-    storyPoints: 3,
-    status: "To Do",
-    assigneeId: "user-2",
-    epicKey: "ANALYTICS",
-    sprintId: "sprint-22",
-    labels: ["analytics", "dashboard"],
-    jiraUpdatedAt: new Date().toISOString(),
-    syncedAt: new Date().toISOString(),
-    score: {
-      id: "score-3",
-      storyId: "3",
-      rubricId: "rubric-1",
-      totalScore: 72,
-      completeness: 18,
-      clarity: 17,
-      estimability: 15,
-      traceability: 12,
-      testability: 10,
-      aiSuggestions: null,
-      scoredAt: new Date().toISOString(),
-    },
-  },
-  {
-    id: "4",
-    workspaceId: "ws-1",
-    jiraId: "10004",
-    jiraKey: "PROJ-126",
-    title: "Implement email notification system",
-    description: "Send emails for important events",
-    acceptanceCriteria: "Emails are sent",
-    storyPoints: 5,
-    status: "To Do",
-    assigneeId: null,
-    epicKey: "NOTIFICATIONS",
-    sprintId: "sprint-22",
-    labels: ["notifications"],
-    jiraUpdatedAt: new Date().toISOString(),
-    syncedAt: new Date().toISOString(),
-    score: {
-      id: "score-4",
-      storyId: "4",
-      rubricId: "rubric-1",
-      totalScore: 58,
-      completeness: 14,
-      clarity: 12,
-      estimability: 14,
-      traceability: 10,
-      testability: 8,
-      aiSuggestions: [
-        {
-          type: "description",
-          current: "Send emails for important events",
-          improved: "As a user, I want to receive email notifications for account-related events (password changes, login from new device, payment confirmations) so I stay informed about my account activity",
-        },
-      ],
-      scoredAt: new Date().toISOString(),
-    },
-  },
-];
-
-const sprints = [
-  { id: "sprint-22", name: "Sprint 22", startDate: "2026-04-13", endDate: "2026-04-27" },
-  { id: "sprint-21", name: "Sprint 21", startDate: "2026-03-30", endDate: "2026-04-12" },
-  { id: "sprint-20", name: "Sprint 20", startDate: "2026-03-16", endDate: "2026-03-29" },
-];
 
 export default function QualityGatePage() {
   const toast = useToastActions();
@@ -190,70 +47,72 @@ export default function QualityGatePage() {
     setScoreFilter,
     viewMode,
     setViewMode,
+    selectedSprintId,
+    setSelectedSprintId,
     isScoring,
     setIsScoring,
   } = useQualityGateStore();
 
-  const [selectedSprint, setSelectedSprint] = useState(sprints[0].id);
-  const [isLoading] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const { data: sprintsData, isLoading: sprintsLoading } = useSprints();
+  const sprints = sprintsData?.sprints || [];
 
-  // Filter stories
-  const filteredStories = mockStories.filter((story) => {
-    if (searchQuery && !story.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    if (scoreFilter !== "all" && story.score) {
-      const score = story.score.totalScore;
-      switch (scoreFilter) {
-        case "excellent":
-          if (score < 85) return false;
-          break;
-        case "good":
-          if (score < 70 || score >= 85) return false;
-          break;
-        case "fair":
-          if (score < 50 || score >= 70) return false;
-          break;
-        case "poor":
-          if (score >= 50) return false;
-          break;
-      }
-    }
-    return true;
+  const effectiveSprintId = selectedSprintId || sprints.find(s => s.isActive)?.jiraSprintId?.toString();
+
+  const {
+    data: storiesData,
+    isLoading: storiesLoading,
+    refetch: refetchStories,
+    isRefetching,
+  } = useStories({
+    sprintId: effectiveSprintId,
+    scoreFilter: scoreFilter as "all" | "excellent" | "good" | "fair" | "poor",
+    searchQuery: searchQuery || undefined,
   });
 
-  // Calculate distribution
-  const distribution = {
-    excellent: mockStories.filter((s) => (s.score?.totalScore ?? 0) >= 85).length,
-    good: mockStories.filter((s) => {
-      const score = s.score?.totalScore ?? 0;
-      return score >= 70 && score < 85;
-    }).length,
-    fair: mockStories.filter((s) => {
-      const score = s.score?.totalScore ?? 0;
-      return score >= 50 && score < 70;
-    }).length,
-    poor: mockStories.filter((s) => (s.score?.totalScore ?? 0) < 50).length,
-  };
+  const stories = storiesData?.stories || [];
+  const distribution = storiesData?.distribution || { excellent: 0, good: 0, fair: 0, poor: 0 };
+  const stats = useStoryStats(stories);
 
-  const avgScore = Math.round(
-    mockStories.reduce((acc, s) => acc + (s.score?.totalScore ?? 0), 0) / mockStories.length
-  );
+  const isLoading = storiesLoading || sprintsLoading;
 
   const handleScoreSprint = async () => {
+    if (!effectiveSprintId || stories.length === 0) {
+      toast.warning("No stories", "No stories available to score");
+      return;
+    }
+
     setIsScoring(true);
     try {
-      // Simulate scoring - in real app, this would call the AI scoring API
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch("/api/ai/score-story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stories: stories.slice(0, 20).map((s) => ({
+            key: s.jiraKey,
+            title: s.title,
+            description: s.description,
+            acceptanceCriteria: s.acceptanceCriteria,
+            storyPoints: s.storyPoints,
+            epicKey: s.epicKey,
+            labels: s.labels,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to score stories");
+      }
+
+      const result = await response.json();
       toast.success(
         "Sprint scored",
-        `Successfully analyzed ${mockStories.length} stories`
+        `Successfully analyzed ${result.totalScored || stories.length} stories`
       );
-    } catch {
+      refetchStories();
+    } catch (error) {
       toast.error(
         "Scoring failed",
-        "Unable to score stories. Please try again."
+        error instanceof Error ? error.message : "Unable to score stories"
       );
     } finally {
       setIsScoring(false);
@@ -261,17 +120,11 @@ export default function QualityGatePage() {
   };
 
   const handleSyncJira = async () => {
-    setIsSyncing(true);
     try {
       const response = await fetch("/api/jira/sync", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          projectKey: "PROJ", // In real app, this would come from workspace settings
-          fullSync: false,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullSync: false }),
       });
 
       const data = await response.json();
@@ -284,15 +137,18 @@ export default function QualityGatePage() {
         "JIRA sync complete",
         `Synced ${data.stories?.synced ?? 0} stories`
       );
+      refetchStories();
     } catch (error) {
       toast.error(
         "Sync failed",
         error instanceof Error ? error.message : "Unable to sync with JIRA"
       );
-    } finally {
-      setIsSyncing(false);
     }
   };
+
+  const currentSprint = sprints.find(
+    (s) => s.jiraSprintId?.toString() === effectiveSprintId
+  );
 
   return (
     <div>
@@ -304,11 +160,11 @@ export default function QualityGatePage() {
             <Button
               variant="secondary"
               size="sm"
-              leftIcon={<RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />}
+              leftIcon={<RefreshCw className={cn("w-4 h-4", isRefetching && "animate-spin")} />}
               onClick={handleSyncJira}
-              disabled={isSyncing}
+              disabled={isRefetching}
             >
-              {isSyncing ? "Syncing..." : "Sync JIRA"}
+              {isRefetching ? "Syncing..." : "Sync JIRA"}
             </Button>
             <Button
               variant="primary"
@@ -316,6 +172,7 @@ export default function QualityGatePage() {
               leftIcon={<Zap className="w-4 h-4" />}
               onClick={handleScoreSprint}
               isLoading={isScoring}
+              disabled={stories.length === 0}
             >
               Score Sprint
             </Button>
@@ -324,37 +181,44 @@ export default function QualityGatePage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left: Sprint Health */}
         <div className="lg:col-span-1">
           <SprintHealthSnapshot
-            sprintName={sprints.find((s) => s.id === selectedSprint)?.name ?? "Sprint"}
-            healthScore={avgScore}
-            totalStories={mockStories.length}
+            sprintName={currentSprint?.name ?? "Sprint"}
+            healthScore={stats.avgScore}
+            totalStories={stats.totalStories}
             distribution={distribution}
-            trend={{ direction: "up", value: 5 }}
-            storiesAtRisk={distribution.poor + distribution.fair}
+            trend={{ direction: "up", value: 0 }}
+            storiesAtRisk={stats.storiesAtRisk}
           />
         </div>
 
-        {/* Right: Story List */}
         <div className="lg:col-span-3">
-          {/* Filters */}
           <div className="flex items-center gap-3 mb-4">
-            {/* Sprint Selector */}
-            <Select value={selectedSprint} onValueChange={setSelectedSprint}>
+            <Select
+              value={effectiveSprintId || ""}
+              onValueChange={setSelectedSprintId}
+            >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Select sprint" />
               </SelectTrigger>
               <SelectContent>
-                {sprints.map((sprint) => (
-                  <SelectItem key={sprint.id} value={sprint.id}>
-                    {sprint.name}
+                {sprints.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    No sprints found
                   </SelectItem>
-                ))}
+                ) : (
+                  sprints.map((sprint) => (
+                    <SelectItem
+                      key={sprint.id}
+                      value={sprint.jiraSprintId.toString()}
+                    >
+                      {sprint.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
 
-            {/* Search */}
             <div className="flex-1 max-w-xs">
               <Input
                 placeholder="Search stories..."
@@ -364,7 +228,6 @@ export default function QualityGatePage() {
               />
             </div>
 
-            {/* Score Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="sm">
@@ -402,7 +265,6 @@ export default function QualityGatePage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* View Toggle */}
             <div className="flex items-center border border-border rounded-md">
               <button
                 onClick={() => setViewMode("grid")}
@@ -429,14 +291,13 @@ export default function QualityGatePage() {
             </div>
           </div>
 
-          {/* Story List */}
           {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <SkeletonStoryCard key={i} />
               ))}
             </div>
-          ) : filteredStories.length === 0 ? (
+          ) : stories.length === 0 ? (
             <EmptyStoriesState />
           ) : (
             <motion.div
@@ -445,9 +306,43 @@ export default function QualityGatePage() {
               initial="hidden"
               animate="visible"
             >
-              {filteredStories.map((story, index) => (
+              {stories.map((story, index) => (
                 <motion.div key={story.id} variants={staggerItem}>
-                  <StoryCard story={story} delay={index * 50} />
+                  <StoryCard
+                    story={{
+                      id: story.id,
+                      workspaceId: story.workspaceId,
+                      jiraId: story.jiraId,
+                      jiraKey: story.jiraKey,
+                      title: story.title,
+                      description: story.description,
+                      acceptanceCriteria: story.acceptanceCriteria,
+                      storyPoints: story.storyPoints,
+                      status: story.status,
+                      assigneeId: null,
+                      epicKey: story.epicKey,
+                      sprintId: story.sprintId?.toString() || null,
+                      labels: story.labels,
+                      jiraUpdatedAt: story.jiraUpdatedAt,
+                      syncedAt: story.syncedAt,
+                      score: story.score
+                        ? {
+                            id: "score",
+                            storyId: story.id,
+                            rubricId: "default",
+                            totalScore: story.score.totalScore,
+                            completeness: null,
+                            clarity: null,
+                            estimability: null,
+                            traceability: null,
+                            testability: null,
+                            aiSuggestions: null,
+                            scoredAt: story.score.scoredAt,
+                          }
+                        : null,
+                    }}
+                    delay={index * 50}
+                  />
                 </motion.div>
               ))}
             </motion.div>

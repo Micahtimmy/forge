@@ -389,35 +389,62 @@ export type Database = {
         Row: {
           id: string;
           workspace_id: string;
-          signal_update_id: string | null;
-          made_by_id: string;
+          created_by: string;
           title: string;
-          reasoning: string | null;
-          affected_tickets: string[] | null;
-          tags: string[] | null;
+          description: string | null;
+          decision_type: "scope_change" | "priority_shift" | "resource_allocation" | "technical_decision" | "process_change" | "risk_acceptance" | "other";
+          context: Json;
+          decision: Json;
+          ai_summary: string | null;
+          ai_risk_assessment: Json | null;
+          outcome_status: "pending" | "successful" | "partial" | "failed" | "unknown";
+          outcome: Json | null;
+          outcome_evaluated_at: string | null;
+          outcome_evaluated_by: string | null;
+          tags: string[];
+          visibility: "private" | "team" | "workspace";
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           workspace_id: string;
-          signal_update_id?: string | null;
-          made_by_id: string;
+          created_by: string;
           title: string;
-          reasoning?: string | null;
-          affected_tickets?: string[] | null;
-          tags?: string[] | null;
+          description?: string | null;
+          decision_type: "scope_change" | "priority_shift" | "resource_allocation" | "technical_decision" | "process_change" | "risk_acceptance" | "other";
+          context?: Json;
+          decision: Json;
+          ai_summary?: string | null;
+          ai_risk_assessment?: Json | null;
+          outcome_status?: "pending" | "successful" | "partial" | "failed" | "unknown";
+          outcome?: Json | null;
+          outcome_evaluated_at?: string | null;
+          outcome_evaluated_by?: string | null;
+          tags?: string[];
+          visibility?: "private" | "team" | "workspace";
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           workspace_id?: string;
-          signal_update_id?: string | null;
-          made_by_id?: string;
+          created_by?: string;
           title?: string;
-          reasoning?: string | null;
-          affected_tickets?: string[] | null;
-          tags?: string[] | null;
+          description?: string | null;
+          decision_type?: "scope_change" | "priority_shift" | "resource_allocation" | "technical_decision" | "process_change" | "risk_acceptance" | "other";
+          context?: Json;
+          decision?: Json;
+          ai_summary?: string | null;
+          ai_risk_assessment?: Json | null;
+          outcome_status?: "pending" | "successful" | "partial" | "failed" | "unknown";
+          outcome?: Json | null;
+          outcome_evaluated_at?: string | null;
+          outcome_evaluated_by?: string | null;
+          tags?: string[];
+          visibility?: "private" | "team" | "workspace";
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -427,9 +454,810 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "decisions_signal_update_id_fkey";
-            columns: ["signal_update_id"];
-            referencedRelation: "signal_updates";
+            foreignKeyName: "decisions_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      decision_story_links: {
+        Row: {
+          id: string;
+          decision_id: string;
+          story_id: string;
+          link_type: "caused_by" | "affects" | "blocks" | "related";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          decision_id: string;
+          story_id: string;
+          link_type: "caused_by" | "affects" | "blocks" | "related";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          decision_id?: string;
+          story_id?: string;
+          link_type?: "caused_by" | "affects" | "blocks" | "related";
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "decision_story_links_decision_id_fkey";
+            columns: ["decision_id"];
+            referencedRelation: "decisions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "decision_story_links_story_id_fkey";
+            columns: ["story_id"];
+            referencedRelation: "stories";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      decision_templates: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          decision_type: string;
+          template: Json;
+          usage_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          decision_type: string;
+          template: Json;
+          usage_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          name?: string;
+          decision_type?: string;
+          template?: Json;
+          usage_count?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "decision_templates_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      jira_sync_operations: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          story_id: string | null;
+          jira_issue_key: string;
+          operation_type: "update_field" | "add_comment" | "transition" | "apply_suggestion" | "add_label" | "remove_label";
+          payload: Json;
+          status: "pending" | "in_progress" | "completed" | "failed" | "conflict";
+          error_message: string | null;
+          retry_count: number;
+          max_retries: number;
+          initiated_by: string | null;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          story_id?: string | null;
+          jira_issue_key: string;
+          operation_type: "update_field" | "add_comment" | "transition" | "apply_suggestion" | "add_label" | "remove_label";
+          payload: Json;
+          status?: "pending" | "in_progress" | "completed" | "failed" | "conflict";
+          error_message?: string | null;
+          retry_count?: number;
+          max_retries?: number;
+          initiated_by?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          story_id?: string | null;
+          jira_issue_key?: string;
+          operation_type?: "update_field" | "add_comment" | "transition" | "apply_suggestion" | "add_label" | "remove_label";
+          payload?: Json;
+          status?: "pending" | "in_progress" | "completed" | "failed" | "conflict";
+          error_message?: string | null;
+          retry_count?: number;
+          max_retries?: number;
+          initiated_by?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "jira_sync_operations_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      notification_events: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          event_type: string;
+          event_data: Json;
+          source_type: string;
+          source_id: string | null;
+          importance: "low" | "normal" | "high" | "critical";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          event_type: string;
+          event_data: Json;
+          source_type: string;
+          source_id?: string | null;
+          importance?: "low" | "normal" | "high" | "critical";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          event_type?: string;
+          event_data?: Json;
+          source_type?: string;
+          source_id?: string | null;
+          importance?: "low" | "normal" | "high" | "critical";
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          user_id: string;
+          event_id: string | null;
+          rule_id: string | null;
+          channel: "email" | "slack" | "in_app";
+          title: string;
+          body: string;
+          action_url: string | null;
+          metadata: Json;
+          status: "pending" | "sent" | "delivered" | "read" | "failed";
+          error_message: string | null;
+          sent_at: string | null;
+          delivered_at: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          user_id: string;
+          event_id?: string | null;
+          rule_id?: string | null;
+          channel: "email" | "slack" | "in_app";
+          title: string;
+          body: string;
+          action_url?: string | null;
+          metadata?: Json;
+          status?: "pending" | "sent" | "delivered" | "read" | "failed";
+          error_message?: string | null;
+          sent_at?: string | null;
+          delivered_at?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          user_id?: string;
+          event_id?: string | null;
+          rule_id?: string | null;
+          channel?: "email" | "slack" | "in_app";
+          title?: string;
+          body?: string;
+          action_url?: string | null;
+          metadata?: Json;
+          status?: "pending" | "sent" | "delivered" | "read" | "failed";
+          error_message?: string | null;
+          sent_at?: string | null;
+          delivered_at?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      notification_rules: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          created_by: string | null;
+          name: string;
+          description: string | null;
+          event_types: string[];
+          conditions: Json;
+          channels: string[];
+          recipients: Json;
+          template_override: Json | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          created_by?: string | null;
+          name: string;
+          description?: string | null;
+          event_types: string[];
+          conditions?: Json;
+          channels: string[];
+          recipients: Json;
+          template_override?: Json | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          created_by?: string | null;
+          name?: string;
+          description?: string | null;
+          event_types?: string[];
+          conditions?: Json;
+          channels?: string[];
+          recipients?: Json;
+          template_override?: Json | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_rules_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      notification_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          workspace_id: string;
+          email_enabled: boolean;
+          slack_enabled: boolean;
+          in_app_enabled: boolean;
+          digest_frequency: "realtime" | "hourly" | "daily" | "weekly";
+          digest_time: string;
+          digest_timezone: string;
+          quiet_hours_enabled: boolean;
+          quiet_hours_start: string | null;
+          quiet_hours_end: string | null;
+          event_preferences: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          workspace_id: string;
+          email_enabled?: boolean;
+          slack_enabled?: boolean;
+          in_app_enabled?: boolean;
+          digest_frequency?: "realtime" | "hourly" | "daily" | "weekly";
+          digest_time?: string;
+          digest_timezone?: string;
+          quiet_hours_enabled?: boolean;
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          event_preferences?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          workspace_id?: string;
+          email_enabled?: boolean;
+          slack_enabled?: boolean;
+          in_app_enabled?: boolean;
+          digest_frequency?: "realtime" | "hourly" | "daily" | "weekly";
+          digest_time?: string;
+          digest_timezone?: string;
+          quiet_hours_enabled?: boolean;
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          event_preferences?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_preferences_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      quality_gates: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          description: string | null;
+          trigger_transition: string;
+          min_score: number;
+          action: "block" | "warn" | "comment";
+          required_dimensions: string[] | null;
+          notification_channels: string[];
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          description?: string | null;
+          trigger_transition: string;
+          min_score: number;
+          action: "block" | "warn" | "comment";
+          required_dimensions?: string[] | null;
+          notification_channels?: string[];
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          name?: string;
+          description?: string | null;
+          trigger_transition?: string;
+          min_score?: number;
+          action?: "block" | "warn" | "comment";
+          required_dimensions?: string[] | null;
+          notification_channels?: string[];
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "quality_gates_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      quality_violations: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          story_id: string;
+          gate_id: string;
+          violation_type: "score_below_threshold" | "missing_dimension" | "blocked";
+          score_at_time: number;
+          required_score: number;
+          jira_comment_id: string | null;
+          resolution_status: "open" | "resolved" | "waived" | "expired";
+          resolved_at: string | null;
+          resolved_by: string | null;
+          resolution_notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          story_id: string;
+          gate_id: string;
+          violation_type: "score_below_threshold" | "missing_dimension" | "blocked";
+          score_at_time: number;
+          required_score: number;
+          jira_comment_id?: string | null;
+          resolution_status?: "open" | "resolved" | "waived" | "expired";
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          resolution_notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          story_id?: string;
+          gate_id?: string;
+          violation_type?: "score_below_threshold" | "missing_dimension" | "blocked";
+          score_at_time?: number;
+          required_score?: number;
+          jira_comment_id?: string | null;
+          resolution_status?: "open" | "resolved" | "waived" | "expired";
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          resolution_notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "quality_violations_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quality_violations_story_id_fkey";
+            columns: ["story_id"];
+            referencedRelation: "stories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quality_violations_gate_id_fkey";
+            columns: ["gate_id"];
+            referencedRelation: "quality_gates";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      scenarios: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          created_by: string;
+          name: string;
+          description: string | null;
+          baseline: Json;
+          changes: Json;
+          results: Json | null;
+          status: "draft" | "simulated" | "applied" | "archived";
+          simulated_at: string | null;
+          applied_at: string | null;
+          applied_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          created_by: string;
+          name: string;
+          description?: string | null;
+          baseline: Json;
+          changes: Json;
+          results?: Json | null;
+          status?: "draft" | "simulated" | "applied" | "archived";
+          simulated_at?: string | null;
+          applied_at?: string | null;
+          applied_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          created_by?: string;
+          name?: string;
+          description?: string | null;
+          baseline?: Json;
+          changes?: Json;
+          results?: Json | null;
+          status?: "draft" | "simulated" | "applied" | "archived";
+          simulated_at?: string | null;
+          applied_at?: string | null;
+          applied_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scenarios_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scenarios_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      team_member_profiles: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          user_id: string;
+          metrics: Json;
+          strengths: string[] | null;
+          growth_areas: string[] | null;
+          coaching_suggestions: Json | null;
+          velocity_trend: "improving" | "stable" | "declining" | null;
+          quality_trend: "improving" | "stable" | "declining" | null;
+          visibility: "self_only" | "manager_visible" | "team_visible" | "anonymous_team";
+          last_calculated_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          user_id: string;
+          metrics?: Json;
+          strengths?: string[] | null;
+          growth_areas?: string[] | null;
+          coaching_suggestions?: Json | null;
+          velocity_trend?: "improving" | "stable" | "declining" | null;
+          quality_trend?: "improving" | "stable" | "declining" | null;
+          visibility?: "self_only" | "manager_visible" | "team_visible" | "anonymous_team";
+          last_calculated_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          user_id?: string;
+          metrics?: Json;
+          strengths?: string[] | null;
+          growth_areas?: string[] | null;
+          coaching_suggestions?: Json | null;
+          velocity_trend?: "improving" | "stable" | "declining" | null;
+          quality_trend?: "improving" | "stable" | "declining" | null;
+          visibility?: "self_only" | "manager_visible" | "team_visible" | "anonymous_team";
+          last_calculated_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_member_profiles_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_member_profiles_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      team_member_metrics_history: {
+        Row: {
+          id: string;
+          profile_id: string;
+          period_start: string;
+          period_end: string;
+          metrics: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          period_start: string;
+          period_end: string;
+          metrics: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          period_start?: string;
+          period_end?: string;
+          metrics?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_member_metrics_history_profile_id_fkey";
+            columns: ["profile_id"];
+            referencedRelation: "team_member_profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      program_health_scores: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          pi_id: string | null;
+          health_score: number;
+          health_status: "excellent" | "good" | "at_risk" | "critical";
+          dimensions: Json;
+          top_positive_drivers: Json | null;
+          top_negative_drivers: Json | null;
+          ai_recommendations: Json | null;
+          calculated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          pi_id?: string | null;
+          health_score: number;
+          health_status: "excellent" | "good" | "at_risk" | "critical";
+          dimensions: Json;
+          top_positive_drivers?: Json | null;
+          top_negative_drivers?: Json | null;
+          ai_recommendations?: Json | null;
+          calculated_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          pi_id?: string | null;
+          health_score?: number;
+          health_status?: "excellent" | "good" | "at_risk" | "critical";
+          dimensions?: Json;
+          top_positive_drivers?: Json | null;
+          top_negative_drivers?: Json | null;
+          ai_recommendations?: Json | null;
+          calculated_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "program_health_scores_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "program_health_scores_pi_id_fkey";
+            columns: ["pi_id"];
+            referencedRelation: "program_increments";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      sprint_predictions: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          sprint_id: number;
+          risk_score: number;
+          risk_level: "low" | "medium" | "high" | "critical";
+          contributing_factors: Json;
+          recommendations: Json | null;
+          actual_completion_rate: number | null;
+          actual_outcome: "on_track" | "partial" | "failed" | null;
+          prediction_accuracy: number | null;
+          predicted_at: string;
+          evaluated_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          sprint_id: number;
+          risk_score: number;
+          risk_level: "low" | "medium" | "high" | "critical";
+          contributing_factors: Json;
+          recommendations?: Json | null;
+          actual_completion_rate?: number | null;
+          actual_outcome?: "on_track" | "partial" | "failed" | null;
+          prediction_accuracy?: number | null;
+          predicted_at?: string;
+          evaluated_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          sprint_id?: number;
+          risk_score?: number;
+          risk_level?: "low" | "medium" | "high" | "critical";
+          contributing_factors?: Json;
+          recommendations?: Json | null;
+          actual_completion_rate?: number | null;
+          actual_outcome?: "on_track" | "partial" | "failed" | null;
+          prediction_accuracy?: number | null;
+          predicted_at?: string;
+          evaluated_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sprint_predictions_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      story_predictions: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          story_id: string;
+          sprint_id: number | null;
+          slip_probability: number;
+          risk_factors: Json;
+          recommended_actions: Json | null;
+          actual_slipped: boolean | null;
+          predicted_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          story_id: string;
+          sprint_id?: number | null;
+          slip_probability: number;
+          risk_factors: Json;
+          recommended_actions?: Json | null;
+          actual_slipped?: boolean | null;
+          predicted_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          story_id?: string;
+          sprint_id?: number | null;
+          slip_probability?: number;
+          risk_factors?: Json;
+          recommended_actions?: Json | null;
+          actual_slipped?: boolean | null;
+          predicted_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "story_predictions_workspace_id_fkey";
+            columns: ["workspace_id"];
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "story_predictions_story_id_fkey";
+            columns: ["story_id"];
+            referencedRelation: "stories";
             referencedColumns: ["id"];
           }
         ];
@@ -737,6 +1565,23 @@ export type PIDependency = Tables<"pi_dependencies">;
 export type Subscription = Tables<"subscriptions">;
 export type TeamInvitation = Tables<"team_invitations">;
 
+// New Decision Intelligence types
+export type DecisionStoryLink = Tables<"decision_story_links">;
+export type DecisionTemplate = Tables<"decision_templates">;
+export type JiraSyncOperation = Tables<"jira_sync_operations">;
+export type NotificationEvent = Tables<"notification_events">;
+export type Notification = Tables<"notifications">;
+export type NotificationRule = Tables<"notification_rules">;
+export type NotificationPreference = Tables<"notification_preferences">;
+export type QualityGate = Tables<"quality_gates">;
+export type QualityViolation = Tables<"quality_violations">;
+export type Scenario = Tables<"scenarios">;
+export type TeamMemberProfile = Tables<"team_member_profiles">;
+export type TeamMemberMetricsHistory = Tables<"team_member_metrics_history">;
+export type ProgramHealthScore = Tables<"program_health_scores">;
+export type SprintPrediction = Tables<"sprint_predictions">;
+export type StoryPrediction = Tables<"story_predictions">;
+
 // Insert types
 export type WorkspaceInsert = TablesInsert<"workspaces">;
 export type UserInsert = TablesInsert<"users">;
@@ -744,3 +1589,6 @@ export type StoryInsert = TablesInsert<"stories">;
 export type SignalUpdateInsert = TablesInsert<"signal_updates">;
 export type ProgramIncrementInsert = TablesInsert<"program_increments">;
 export type TeamInvitationInsert = TablesInsert<"team_invitations">;
+export type DecisionInsert = TablesInsert<"decisions">;
+export type ScenarioInsert = TablesInsert<"scenarios">;
+export type QualityGateInsert = TablesInsert<"quality_gates">;

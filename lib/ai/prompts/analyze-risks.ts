@@ -3,7 +3,9 @@
  * Used by the Horizon module to analyze PI risks from dependencies and objectives
  */
 
-export const PROMPT_VERSION = "1.0.0";
+import { sanitizeForPrompt } from "../sanitize";
+
+export const PROMPT_VERSION = "1.1.0";
 
 export const RISK_ANALYSIS_SYSTEM = `You are a SAFe (Scaled Agile Framework) risk analysis expert helping an RTE (Release Train Engineer) identify and assess program risks during PI Planning.
 
@@ -99,20 +101,49 @@ export const RISK_ANALYSIS_USER_PROMPT = (context: {
     objectivesAchieved: number;
     totalObjectives: number;
   };
-}) => `
+}) => {
+  // Sanitize all user-provided content
+  const safePiName = sanitizeForPrompt(context.piName, { maxLength: 200 });
+  const safeStartDate = sanitizeForPrompt(context.startDate, { maxLength: 20 });
+  const safeEndDate = sanitizeForPrompt(context.endDate, { maxLength: 20 });
+
+  const safeTeams = context.teams.slice(0, 50).map((team) => ({
+    name: sanitizeForPrompt(team.name, { maxLength: 100 }),
+    capacity: Math.min(Math.max(0, team.capacity), 10000),
+    committedPoints: Math.min(Math.max(0, team.committedPoints), 10000),
+    objectives: team.objectives.slice(0, 50).map((obj) => ({
+      title: sanitizeForPrompt(obj.title, { maxLength: 300 }),
+      businessValue: Math.min(Math.max(1, obj.businessValue), 10),
+      commitment: obj.commitment,
+    })),
+  }));
+
+  const safeDependencies = context.dependencies.slice(0, 100).map((dep) => ({
+    id: sanitizeForPrompt(dep.id, { maxLength: 50 }),
+    fromTeam: sanitizeForPrompt(dep.fromTeam, { maxLength: 100 }),
+    toTeam: sanitizeForPrompt(dep.toTeam, { maxLength: 100 }),
+    fromStory: sanitizeForPrompt(dep.fromStory, { maxLength: 200 }),
+    toStory: sanitizeForPrompt(dep.toStory, { maxLength: 200 }),
+    status: sanitizeForPrompt(dep.status, { maxLength: 50 }),
+    description: dep.description
+      ? sanitizeForPrompt(dep.description, { maxLength: 500 })
+      : undefined,
+  }));
+
+  return `
 Analyze the following Program Increment for risks:
 
 **PI Details:**
-- Name: ${context.piName}
-- Duration: ${context.startDate} to ${context.endDate}
+- Name: ${safePiName}
+- Duration: ${safeStartDate} to ${safeEndDate}
 
 **Team Commitments:**
-${context.teams
+${safeTeams
   .map(
     (team) => `
 ### ${team.name}
 - Capacity: ${team.capacity} story points
-- Committed: ${team.committedPoints} story points (${Math.round((team.committedPoints / team.capacity) * 100)}% utilization)
+- Committed: ${team.committedPoints} story points (${team.capacity > 0 ? Math.round((team.committedPoints / team.capacity) * 100) : 0}% utilization)
 - Objectives:
 ${team.objectives
   .map(
@@ -124,10 +155,10 @@ ${team.objectives
   )
   .join("\n")}
 
-**Cross-Team Dependencies (${context.dependencies.length} total):**
+**Cross-Team Dependencies (${safeDependencies.length} total):**
 ${
-  context.dependencies.length > 0
-    ? context.dependencies
+  safeDependencies.length > 0
+    ? safeDependencies
         .map(
           (dep) =>
             `- ${dep.id}: ${dep.fromTeam} → ${dep.toTeam}
@@ -144,8 +175,8 @@ ${
   context.previousPIMetrics
     ? `
 **Historical Data (Previous PI):**
-- Velocity Accuracy: ${context.previousPIMetrics.velocityAccuracy}%
-- Objectives Achieved: ${context.previousPIMetrics.objectivesAchieved}/${context.previousPIMetrics.totalObjectives} (${Math.round((context.previousPIMetrics.objectivesAchieved / context.previousPIMetrics.totalObjectives) * 100)}%)
+- Velocity Accuracy: ${Math.min(Math.max(0, context.previousPIMetrics.velocityAccuracy), 200)}%
+- Objectives Achieved: ${context.previousPIMetrics.objectivesAchieved}/${context.previousPIMetrics.totalObjectives} (${context.previousPIMetrics.totalObjectives > 0 ? Math.round((context.previousPIMetrics.objectivesAchieved / context.previousPIMetrics.totalObjectives) * 100) : 0}%)
 `
     : ""
 }
@@ -166,3 +197,4 @@ Focus especially on:
 
 Generate the risk analysis in the XML format specified.
 `;
+};

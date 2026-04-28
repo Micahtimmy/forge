@@ -1,6 +1,30 @@
 import { createUntypedServerClient } from "../client";
 import type { PICanvasData } from "@/types/pi";
 
+/**
+ * Verifies that a PI belongs to the given workspace.
+ * Use this before any PI sub-resource operations if not using getProgramIncrementById.
+ *
+ * @param workspaceId - The workspace ID to check against
+ * @param piId - The PI ID to verify
+ * @returns true if PI belongs to workspace, false otherwise
+ */
+export async function verifyPIOwnership(
+  workspaceId: string,
+  piId: string
+): Promise<boolean> {
+  const supabase = createUntypedServerClient();
+
+  const { data, error } = await supabase
+    .from("program_increments")
+    .select("id")
+    .eq("id", piId)
+    .eq("workspace_id", workspaceId)
+    .single();
+
+  return !error && !!data;
+}
+
 export interface ProgramIncrement {
   id: string;
   workspaceId: string;

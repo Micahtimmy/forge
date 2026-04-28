@@ -9,7 +9,7 @@ import {
 describe("Score Story Prompt", () => {
   describe("Constants", () => {
     it("has a version number", () => {
-      expect(PROMPT_VERSION).toBe("1.0.0");
+      expect(PROMPT_VERSION).toBe("1.1.0");
     });
 
     it("has a system prompt", () => {
@@ -287,7 +287,9 @@ describe("Score Story Prompt", () => {
       expect(result.suggestions).toHaveLength(0);
     });
 
-    it("handles partial XML", () => {
+    it("handles partial XML - returns defaults when required dimensions missing", () => {
+      // parseScoreResponseSafe requires completeness, clarity, and testability
+      // Partial XML missing these returns parse failure, and legacy parseScoreResponse returns defaults
       const xml = `
 <analysis>
   <total_score>50</total_score>
@@ -300,9 +302,9 @@ describe("Score Story Prompt", () => {
 
       const result = parseScoreResponse(xml);
 
-      expect(result.totalScore).toBe(50);
-      expect(result.dimensions.completeness.score).toBe(15);
-      expect(result.dimensions.clarity.score).toBe(0);
+      // Legacy function returns defaults on parse failure
+      expect(result.totalScore).toBe(0);
+      expect(result.dimensions.completeness.reasoning).toBe("Failed to parse AI response");
     });
   });
 });

@@ -45,6 +45,40 @@ export type RateLimitResult =
   | { allowed: false; response: NextResponse; retryAfter: number };
 
 /**
+ * Check if request is from a trusted proxy (Vercel).
+ * Only trust forwarded headers from known infrastructure.
+ */
+function isTrustedProxy(req: NextRequest): boolean {
+  // Vercel adds this header to requests
+  const vercelId = req.headers.get("x-vercel-id");
+  // Also check for Vercel's proxy signature
+  const vercelProxy = req.headers.get("x-vercel-proxy-signature");
+
+  return vercelId !== null || vercelProxy !== null;
+}
+
+/**
+ * Get client IP address safely, only trusting forwarded headers from known proxies.
+ */
+function getClientIp(req: NextRequest): string {
+  // Only trust x-forwarded-for from Vercel's proxy
+  if (isTrustedProxy(req)) {
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    if (forwardedFor) {
+      // Take the first IP (original client)
+      const clientIp = forwardedFor.split(",")[0]?.trim();
+      if (clientIp) return clientIp;
+    }
+
+    const realIp = req.headers.get("x-real-ip");
+    if (realIp) return realIp;
+  }
+
+  // Fallback - cannot determine IP reliably
+  return "unknown";
+}
+
+/**
  * Rate limits a request based on user ID or IP address.
  *
  * Usage:
@@ -67,12 +101,9 @@ export function checkRateLimit(
 ): RateLimitResult {
   cleanup();
 
-  // Use user ID if available, otherwise fall back to IP
-  const clientIdentifier =
-    userId ||
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "anonymous";
+  // Use user ID if available (most reliable), otherwise fall back to IP
+  // This prevents IP spoofing attacks since authenticated users are tracked by ID
+  const clientIdentifier = userId || getClientIp(req);
 
   const key = `${config.identifier}:${clientIdentifier}`;
   const now = Date.now();
@@ -148,6 +179,18 @@ export const RATE_LIMITS = {
     limit: 5,
     windowSeconds: 300, // 5 minutes
     identifier: "jira-sync",
+  },
+  jira: {
+    limit: 60,
+    windowSeconds: 60,
+    identifier: "jira",
+  },
+
+  // Email sending - prevent abuse
+  emailSend: {
+    limit: 20,
+    windowSeconds: 60,
+    identifier: "email-send",
   },
 
   // General API

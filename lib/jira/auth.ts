@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { JiraAccessToken, JiraCloudResource } from "@/types/jira";
 import { JiraClient } from "./client";
+import { encryptIfConfigured, decryptIfEncrypted } from "@/lib/utils/crypto";
 
 // OAuth 2.0 configuration
 const JIRA_AUTH_URL = "https://auth.atlassian.com/authorize";
@@ -110,8 +111,8 @@ export async function storeJiraTokens(
       cloud_id: cloudResource.id,
       site_url: cloudResource.url,
       site_name: cloudResource.name,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptIfConfigured(tokens.access_token),
+      refresh_token: encryptIfConfigured(tokens.refresh_token),
       expires_at: expiresAt.toISOString(),
       scopes: tokens.scope.split(" "),
       connected_at: new Date().toISOString(),
@@ -151,18 +152,22 @@ export async function getValidJiraTokens(
   const expiresAt = new Date(connection.expires_at);
   const now = new Date();
 
+  // Decrypt tokens (handles both encrypted and plaintext for backward compatibility)
+  const accessToken = decryptIfEncrypted(connection.access_token);
+  const refreshToken = decryptIfEncrypted(connection.refresh_token);
+
   // Refresh if token expires in less than 5 minutes
   if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
     try {
-      const newTokens = await refreshAccessToken(connection.refresh_token);
+      const newTokens = await refreshAccessToken(refreshToken);
       const newExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000);
 
-      // Update stored tokens
+      // Update stored tokens (encrypted)
       await supabase
         .from("jira_connections")
         .update({
-          access_token: newTokens.access_token,
-          refresh_token: newTokens.refresh_token || connection.refresh_token,
+          access_token: encryptIfConfigured(newTokens.access_token),
+          refresh_token: encryptIfConfigured(newTokens.refresh_token || refreshToken),
           expires_at: newExpiresAt.toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -170,7 +175,7 @@ export async function getValidJiraTokens(
 
       return {
         accessToken: newTokens.access_token,
-        refreshToken: newTokens.refresh_token || connection.refresh_token,
+        refreshToken: newTokens.refresh_token || refreshToken,
         expiresAt: newExpiresAt,
         cloudId: connection.cloud_id,
         siteUrl: connection.site_url,
@@ -183,8 +188,8 @@ export async function getValidJiraTokens(
   }
 
   return {
-    accessToken: connection.access_token,
-    refreshToken: connection.refresh_token,
+    accessToken,
+    refreshToken,
     expiresAt,
     cloudId: connection.cloud_id,
     siteUrl: connection.site_url,

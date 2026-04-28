@@ -25,14 +25,84 @@ interface StoryCardProps {
   delay?: number;
 }
 
-// Mock dimension data for demo
-const mockDimensions: ScoreDimension[] = [
-  { name: "Completeness", key: "completeness", score: 20, maxScore: 25 },
-  { name: "Clarity", key: "clarity", score: 18, maxScore: 25 },
-  { name: "Estimability", key: "estimability", score: 15, maxScore: 20 },
-  { name: "Traceability", key: "traceability", score: 12, maxScore: 15 },
-  { name: "Testability", key: "testability", score: 7, maxScore: 15 },
-];
+function getDimensionsFromScore(story: StoryWithScore): ScoreDimension[] {
+  const score = story.score;
+  if (!score) {
+    return [
+      { name: "Completeness", key: "completeness", score: 0, maxScore: 25 },
+      { name: "Clarity", key: "clarity", score: 0, maxScore: 25 },
+      { name: "Estimability", key: "estimability", score: 0, maxScore: 20 },
+      { name: "Traceability", key: "traceability", score: 0, maxScore: 15 },
+      { name: "Testability", key: "testability", score: 0, maxScore: 15 },
+    ];
+  }
+
+  const dimensions: ScoreDimension[] = [];
+
+  if (score.completeness !== null && score.completeness !== undefined) {
+    const comp = score.completeness as { score?: number; max?: number } | null;
+    if (comp && typeof comp === "object") {
+      dimensions.push({ name: "Completeness", key: "completeness", score: comp.score ?? 0, maxScore: comp.max ?? 25 });
+    }
+  } else {
+    dimensions.push({ name: "Completeness", key: "completeness", score: Math.round((score.totalScore / 100) * 25), maxScore: 25 });
+  }
+
+  if (score.clarity !== null && score.clarity !== undefined) {
+    const clar = score.clarity as { score?: number; max?: number } | null;
+    if (clar && typeof clar === "object") {
+      dimensions.push({ name: "Clarity", key: "clarity", score: clar.score ?? 0, maxScore: clar.max ?? 25 });
+    }
+  } else {
+    dimensions.push({ name: "Clarity", key: "clarity", score: Math.round((score.totalScore / 100) * 25), maxScore: 25 });
+  }
+
+  if (score.estimability !== null && score.estimability !== undefined) {
+    const est = score.estimability as { score?: number; max?: number } | null;
+    if (est && typeof est === "object") {
+      dimensions.push({ name: "Estimability", key: "estimability", score: est.score ?? 0, maxScore: est.max ?? 20 });
+    }
+  } else {
+    dimensions.push({ name: "Estimability", key: "estimability", score: Math.round((score.totalScore / 100) * 20), maxScore: 20 });
+  }
+
+  if (score.traceability !== null && score.traceability !== undefined) {
+    const trace = score.traceability as { score?: number; max?: number } | null;
+    if (trace && typeof trace === "object") {
+      dimensions.push({ name: "Traceability", key: "traceability", score: trace.score ?? 0, maxScore: trace.max ?? 15 });
+    }
+  } else {
+    dimensions.push({ name: "Traceability", key: "traceability", score: Math.round((score.totalScore / 100) * 15), maxScore: 15 });
+  }
+
+  if (score.testability !== null && score.testability !== undefined) {
+    const test = score.testability as { score?: number; max?: number } | null;
+    if (test && typeof test === "object") {
+      dimensions.push({ name: "Testability", key: "testability", score: test.score ?? 0, maxScore: test.max ?? 15 });
+    }
+  } else {
+    dimensions.push({ name: "Testability", key: "testability", score: Math.round((score.totalScore / 100) * 15), maxScore: 15 });
+  }
+
+  return dimensions;
+}
+
+function getSuggestionsFromScore(story: StoryWithScore): AISuggestion[] {
+  const score = story.score;
+  if (!score || !score.aiSuggestions) {
+    if (score && score.totalScore < 70) {
+      return [{
+        type: "acceptance_criteria",
+        current: "No acceptance criteria defined",
+        improved: "Add clear, testable acceptance criteria with specific conditions and expected outcomes",
+      }];
+    }
+    return [];
+  }
+
+  const suggestions = score.aiSuggestions as AISuggestion[] | null;
+  return suggestions || [];
+}
 
 function DimensionBar({ dimension }: { dimension: ScoreDimension }) {
   const percentage = (dimension.score / dimension.maxScore) * 100;
@@ -124,14 +194,8 @@ export function StoryCard({ story, onViewDetails, delay = 0 }: StoryCardProps) {
   const score = story.score?.totalScore ?? 0;
   const tier = getScoreBadgeVariant(score);
 
-  // Mock suggestions for demo
-  const suggestions: AISuggestion[] = score < 70 ? [
-    {
-      type: "acceptance_criteria",
-      current: "User should be able to login",
-      improved: "Given the user is on the login page, when they enter valid credentials and click Login, then they are redirected to the dashboard within 2 seconds",
-    },
-  ] : [];
+  const dimensions = getDimensionsFromScore(story);
+  const suggestions = getSuggestionsFromScore(story);
 
   return (
     <motion.div
@@ -227,7 +291,7 @@ export function StoryCard({ story, onViewDetails, delay = 0 }: StoryCardProps) {
                   Score Breakdown
                 </h4>
                 <div className="space-y-2">
-                  {mockDimensions.map((dim) => (
+                  {dimensions.map((dim) => (
                     <DimensionBar key={dim.key} dimension={dim} />
                   ))}
                 </div>

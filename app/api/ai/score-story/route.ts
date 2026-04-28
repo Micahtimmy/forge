@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { scoreStory, scoreMultipleStories } from "@/lib/ai/score-story";
+import * as Sentry from "@sentry/nextjs";
+import { scoreStory, scoreMultipleStories, AIParseError } from "@/lib/ai/score-story";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
@@ -91,6 +92,28 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Handle AI parse errors with specific error type
+    if (error instanceof AIParseError) {
+      Sentry.captureException(error, {
+        tags: { module: "quality-gate", operation: "score-story", errorType: "parse" },
+        extra: { storyKey: error.storyKey },
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "AI response could not be parsed",
+          details: error.message,
+          storyKey: error.storyKey,
+        },
+        { status: 422 } // Unprocessable Entity - AI returned unusable response
+      );
+    }
+
+    // Capture unexpected errors
+    Sentry.captureException(error, {
+      tags: { module: "quality-gate", operation: "score-story" },
+    });
 
     // Don't expose internal error details in production
     return NextResponse.json(

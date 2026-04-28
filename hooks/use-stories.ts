@@ -1,7 +1,47 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { StoryWithScore } from "@/types/story";
+
+export interface StoryFromAPI {
+  id: string;
+  workspaceId: string;
+  jiraId: string;
+  jiraKey: string;
+  title: string;
+  description: string | null;
+  acceptanceCriteria: string | null;
+  storyPoints: number | null;
+  status: string;
+  statusCategory: "todo" | "in_progress" | "done";
+  epicKey: string | null;
+  epicName: string | null;
+  sprintId: number | null;
+  sprintName: string | null;
+  assigneeName: string | null;
+  labels: string[];
+  jiraUpdatedAt: string;
+  syncedAt: string;
+  score: {
+    totalScore: number;
+    scoredAt: string;
+  } | null;
+}
+
+export interface StoryDetailFromAPI extends StoryFromAPI {
+  score: {
+    id: string;
+    totalScore: number;
+    completeness: { score: number; max: number; reasoning: string | null };
+    clarity: { score: number; max: number; reasoning: string | null };
+    estimability: { score: number; max: number; reasoning: string | null };
+    traceability: { score: number; max: number; reasoning: string | null };
+    testability: { score: number; max: number; reasoning: string | null };
+    suggestions: Array<{ type: string; current: string; improved: string }>;
+    aiModel: string;
+    promptVersion: string;
+    scoredAt: string;
+  } | null;
+}
 
 interface StoriesFilters {
   sprintId?: string;
@@ -14,9 +54,15 @@ interface StoriesFilters {
 }
 
 interface StoriesResponse {
-  stories: StoryWithScore[];
+  stories: StoryFromAPI[];
   total: number;
   hasMore: boolean;
+  distribution: {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+  };
 }
 
 // Fetch stories with optional filters
@@ -48,7 +94,7 @@ export function useStories(filters: StoriesFilters = {}) {
 
 // Fetch a single story by ID
 export function useStory(storyId: string | null) {
-  return useQuery<StoryWithScore>({
+  return useQuery<StoryDetailFromAPI>({
     queryKey: ["story", storyId],
     queryFn: async () => {
       if (!storyId) throw new Error("Story ID required");
@@ -108,23 +154,9 @@ export function useScoreSprint() {
   });
 }
 
-// Fetch sprints
-export function useSprints() {
-  return useQuery<Array<{ id: string; name: string; startDate: string; endDate: string; isActive: boolean }>>({
-    queryKey: ["sprints"],
-    queryFn: async () => {
-      const response = await fetch("/api/sprints");
-      if (!response.ok) {
-        throw new Error("Failed to fetch sprints");
-      }
-      return response.json();
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
 
 // Calculate score statistics from stories
-export function useStoryStats(stories: StoryWithScore[] | undefined) {
+export function useStoryStats(stories: StoryFromAPI[] | undefined) {
   if (!stories || stories.length === 0) {
     return {
       avgScore: 0,
@@ -156,4 +188,31 @@ export function useStoryStats(stories: StoryWithScore[] | undefined) {
     storiesAtRisk: distribution.poor + distribution.fair,
     totalStories: stories.length,
   };
+}
+
+// Sprint type
+export interface Sprint {
+  id: string;
+  jiraSprintId: number;
+  name: string;
+  state: "active" | "closed" | "future";
+  goal: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  isActive: boolean;
+}
+
+// Fetch sprints
+export function useSprints() {
+  return useQuery<{ sprints: Sprint[] }>({
+    queryKey: ["sprints"],
+    queryFn: async () => {
+      const response = await fetch("/api/sprints");
+      if (!response.ok) {
+        throw new Error("Failed to fetch sprints");
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 }

@@ -7,6 +7,7 @@ import {
   Users,
   Sliders,
   CreditCard,
+  Shield,
   ChevronRight,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -22,6 +23,17 @@ const settingsSections = [
         label: "JIRA Connection",
         description: "Connect and configure your JIRA instance",
         href: "/settings/jira",
+      },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      {
+        icon: Shield,
+        label: "Security",
+        description: "Two-factor authentication and password",
+        href: "/settings/security",
       },
     ],
   },

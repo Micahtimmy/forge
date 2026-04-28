@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { CommandPalette } from "@/components/command-palette";
 import { AIAssistant } from "@/components/ai/ai-assistant";
-import { PageErrorBoundary } from "@/components/ui/error-boundary";
+import { PageErrorBoundary, LayoutErrorBoundary, FeatureErrorBoundary } from "@/components/ui/error-boundary";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
 
@@ -33,8 +33,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <RouteProgress />
       </Suspense>
 
-      <Sidebar />
-      <Topbar />
+      <LayoutErrorBoundary name="Sidebar">
+        <Sidebar />
+      </LayoutErrorBoundary>
+      <LayoutErrorBoundary name="Topbar">
+        <Topbar />
+      </LayoutErrorBoundary>
 
       {/* Main content area */}
       <main
@@ -49,10 +53,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Command Palette */}
-      <CommandPalette />
+      <FeatureErrorBoundary featureName="Command Palette">
+        <CommandPalette />
+      </FeatureErrorBoundary>
 
       {/* AI Assistant */}
-      <AIAssistant />
+      <FeatureErrorBoundary featureName="AI Assistant">
+        <AIAssistant />
+      </FeatureErrorBoundary>
     </div>
   );
 }

@@ -1,37 +1,75 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { deleteDecision } from "@/lib/db/queries/signals";
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/api/auth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
+import { getDecisionById } from "@/lib/db/queries/decisions";
+import { createAdminClient } from "@/lib/db/client";
 
-export async function DELETE(
-  request: Request,
+/**
+ * GET /api/decisions/[id]
+ * Get a decision by ID
+ */
+export async function GET(
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { data: membership } = await supabase
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json({ error: "No workspace" }, { status: 403 });
-    }
-
     const { id } = await params;
-    await deleteDecision(membership.workspace_id, id);
+    const auth = await authenticateRequest();
+    if (!auth.success) return auth.response;
+    const { workspaceId } = auth.context;
+
+    const decision = await getDecisionById(workspaceId, id);
+
+    if (!decision) {
+      return NextResponse.json(
+        { error: "Decision not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ decision });
+  } catch (error) {
+    console.error("[Decision GET] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to get decision" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/decisions/[id]
+ * Delete a decision
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const auth = await authenticateRequest();
+    if (!auth.success) return auth.response;
+    const { workspaceId } = auth.context;
+    const userId = auth.context.user.id;
+
+    const rateLimitResult = checkRateLimit(request, userId, RATE_LIMITS.standard);
+    if (!rateLimitResult.allowed) {
+      return rateLimitResult.response;
+    }
+
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from("decisions")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .eq("id", id);
+
+    if (error) throw error;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Delete decision API error:", error);
+    console.error("[Decision DELETE] Error:", error);
     return NextResponse.json(
       { error: "Failed to delete decision" },
       { status: 500 }

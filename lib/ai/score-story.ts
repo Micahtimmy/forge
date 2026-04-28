@@ -3,11 +3,12 @@
  * Uses Gemini to analyze JIRA stories against quality rubrics
  */
 
-import { getModel, GENERATION_CONFIGS } from "./client";
+import * as Sentry from "@sentry/nextjs";
+import { getModel, GENERATION_CONFIGS, generateContentWithTimeout, AITimeoutError } from "./client";
 import {
   SCORE_STORY_SYSTEM,
   buildScoreStoryPrompt,
-  parseScoreResponse,
+  parseScoreResponseSafe,
 } from "./prompts/score-story";
 
 export interface StoryInput {
@@ -37,6 +38,18 @@ export interface ScoreResult {
     reasoning?: string;
   }>;
   scoredAt: string;
+  parseError?: string;
+}
+
+export class AIParseError extends Error {
+  constructor(
+    message: string,
+    public readonly storyKey: string,
+    public readonly rawResponse?: string
+  ) {
+    super(message);
+    this.name = "AIParseError";
+  }
 }
 
 export async function scoreStory(story: StoryInput): Promise<ScoreResult> {
@@ -45,7 +58,7 @@ export async function scoreStory(story: StoryInput): Promise<ScoreResult> {
   const prompt = buildScoreStoryPrompt(story);
 
   try {
-    const result = await model.generateContent({
+    const result = await generateContentWithTimeout(model, {
       contents: [
         {
           role: "user",
@@ -61,15 +74,37 @@ export async function scoreStory(story: StoryInput): Promise<ScoreResult> {
     const response = result.response;
     const text = response.text();
 
-    // Parse the XML response
-    const parsed = parseScoreResponse(text);
+    // Parse the XML response with explicit error handling
+    const parsed = parseScoreResponseSafe(text);
+
+    if (!parsed.success) {
+      // Log the raw response for debugging (truncated)
+      console.error("[AI Score] Parse failed for story", story.key, parsed.error);
+      console.error("[AI Score] Raw response preview:", text.substring(0, 500));
+
+      throw new AIParseError(
+        parsed.error,
+        story.key,
+        text.substring(0, 1000) // Store truncated raw response
+      );
+    }
 
     return {
       storyKey: story.key,
-      ...parsed,
+      ...parsed.data,
       scoredAt: new Date().toISOString(),
     };
   } catch (error) {
+    if (error instanceof AIParseError) {
+      throw error;
+    }
+
+    // Capture unexpected AI errors to Sentry
+    Sentry.captureException(error, {
+      tags: { module: "quality-gate", operation: "ai-scoring" },
+      extra: { storyKey: story.key },
+    });
+
     console.error("Error scoring story:", error);
     throw new Error(`Failed to score story ${story.key}: ${error}`);
   }
@@ -87,6 +122,10 @@ export async function scoreMultipleStories(
       const result = await scoreStory(story);
       results.push(result);
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { module: "quality-gate", operation: "batch-scoring" },
+        extra: { storyKey: story.key, batchIndex: i, batchSize: stories.length },
+      });
       console.error(`Failed to score story ${story.key}:`, error);
       // Continue with other stories even if one fails
     }

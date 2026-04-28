@@ -187,8 +187,9 @@ export async function createSignalUpdate(
   };
 }
 
-// Upsert a signal draft
+// Upsert a signal draft with workspace verification
 export async function upsertSignalDraft(
+  workspaceId: string,
   updateId: string,
   audience: AudienceType,
   content: string,
@@ -196,6 +197,18 @@ export async function upsertSignalDraft(
   aiGenerated: boolean = true
 ): Promise<SignalDraft> {
   const supabase = createUntypedServerClient();
+
+  // First verify the update belongs to the user's workspace
+  const { data: update, error: verifyError } = await supabase
+    .from("signal_updates")
+    .select("id")
+    .eq("id", updateId)
+    .eq("workspace_id", workspaceId)
+    .single();
+
+  if (verifyError || !update) {
+    throw new Error("Signal update not found or access denied");
+  }
 
   const { data, error } = await supabase
     .from("signal_drafts")
@@ -320,7 +333,12 @@ export async function getDecisions(
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.or(`title.ilike.%${search}%,reasoning.ilike.%${search}%`);
+    // Escape SQL LIKE special characters to prevent injection
+    const escapedSearch = search
+      .replace(/\\/g, "\\\\")  // Escape backslashes first
+      .replace(/%/g, "\\%")    // Escape percent signs
+      .replace(/_/g, "\\_");   // Escape underscores
+    query = query.or(`title.ilike.%${escapedSearch}%,reasoning.ilike.%${escapedSearch}%`);
   }
 
   const { data, error } = await query;

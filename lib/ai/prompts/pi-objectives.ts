@@ -3,7 +3,9 @@
  * Used by the Horizon module to generate PI objectives from features and stories
  */
 
-export const PROMPT_VERSION = "1.0.0";
+import { sanitizeForPrompt } from "../sanitize";
+
+export const PROMPT_VERSION = "1.1.0";
 
 export const PI_OBJECTIVES_SYSTEM = `You are a SAFe (Scaled Agile Framework) expert helping a Release Train Engineer (RTE) or Program Manager draft PI (Program Increment) objectives.
 
@@ -72,16 +74,33 @@ export const PI_OBJECTIVES_USER_PROMPT = (context: {
       storyPoints: number;
     }>;
   }>;
-}) => `
+}) => {
+  // Sanitize all user-provided content
+  const safePiName = sanitizeForPrompt(context.piName, { maxLength: 200 });
+  const safeStartDate = sanitizeForPrompt(context.startDate, { maxLength: 20 });
+  const safeEndDate = sanitizeForPrompt(context.endDate, { maxLength: 20 });
+
+  const safeTeams = context.teams.slice(0, 50).map((team) => ({
+    name: sanitizeForPrompt(team.name, { maxLength: 100 }),
+    capacity: Math.min(Math.max(0, team.capacity), 10000),
+    features: team.features.slice(0, 100).map((f) => ({
+      key: sanitizeForPrompt(f.key, { maxLength: 50 }),
+      title: sanitizeForPrompt(f.title, { maxLength: 200 }),
+      description: sanitizeForPrompt(f.description, { maxLength: 1000, placeholder: "No description" }),
+      storyPoints: Math.min(Math.max(0, f.storyPoints), 1000),
+    })),
+  }));
+
+  return `
 Generate PI objectives for the following Program Increment:
 
 **PI Details:**
-- Name: ${context.piName}
-- Duration: ${context.startDate} to ${context.endDate}
+- Name: ${safePiName}
+- Duration: ${safeStartDate} to ${safeEndDate}
 - Iterations: ${context.iterations}
 
 **Teams and Features:**
-${context.teams
+${safeTeams
   .map(
     (team) => `
 ### ${team.name} (Capacity: ${team.capacity} story points)
@@ -89,7 +108,7 @@ Features:
 ${team.features
   .map(
     (f) => `- ${f.key}: ${f.title}
-  Description: ${f.description || "No description"}
+  Description: ${f.description}
   Story Points: ${f.storyPoints}`
   )
   .join("\n")}
@@ -106,3 +125,4 @@ Based on this information, generate appropriate PI objectives for each team. Foc
 
 Generate the objectives in the XML format specified.
 `;
+};

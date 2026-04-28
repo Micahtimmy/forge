@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { getModel, GENERATION_CONFIGS } from "@/lib/ai/client";
 import {
   GENERATE_UPDATE_SYSTEM,
@@ -143,6 +144,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Capture unexpected errors to Sentry
+    Sentry.captureException(error, {
+      tags: { module: "signal", operation: "generate-update" },
+    });
 
     // Don't expose internal error details in production
     return NextResponse.json(

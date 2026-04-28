@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Input, Label } from "@/components/ui/input";
 import {
@@ -27,48 +28,54 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown";
 import { EmptyPIState } from "@/components/ui/empty-state";
+import { useToastActions } from "@/components/ui/toast";
+import { usePIs, useCreatePI, type PIListItem } from "@/hooks/use-pi";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
-import { format } from "date-fns";
-import type { ProgramIncrement } from "@/types/pi";
+import { format, addWeeks } from "date-fns";
 
-// Mock data
-const mockPIs: (ProgramIncrement & { teams: number; dependencies: number; risks: number })[] = [
-  {
-    id: "pi-1",
-    workspaceId: "ws-1",
-    name: "PI 2026.2",
-    startDate: "2026-04-14",
-    endDate: "2026-07-06",
-    status: "active",
-    iterations: 5,
-    canvasData: null,
-    createdAt: "2026-04-01T00:00:00Z",
-    teams: 4,
-    dependencies: 12,
-    risks: 3,
-  },
-  {
-    id: "pi-2",
-    workspaceId: "ws-1",
-    name: "PI 2026.1",
-    startDate: "2026-01-13",
-    endDate: "2026-04-06",
-    status: "completed",
-    iterations: 5,
-    canvasData: null,
-    createdAt: "2026-01-01T00:00:00Z",
-    teams: 4,
-    dependencies: 18,
-    risks: 0,
-  },
-];
+interface PICardData extends PIListItem {
+  teams: number;
+  dependencies: number;
+  risks: number;
+}
+
+function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="bg-surface-01 border border-border rounded-lg p-5">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {[1, 2, 3].map((j) => (
+              <div key={j} className="flex items-center gap-2">
+                <Skeleton className="w-8 h-8 rounded" />
+                <div>
+                  <Skeleton className="h-4 w-8 mb-1" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="pt-4 border-t border-border">
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function PICard({
   pi,
   onClick,
 }: {
-  pi: (typeof mockPIs)[0];
+  pi: PICardData;
   onClick: () => void;
 }) {
   const statusConfig = {
@@ -179,7 +186,7 @@ function PICard({
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <div className="text-sm text-text-secondary">
-          {pi.iterations} iterations
+          {pi.iterationCount} iterations
         </div>
         <div className="flex items-center text-sm text-iris hover:text-iris-light">
           Open Canvas
@@ -192,28 +199,45 @@ function PICard({
 
 export default function HorizonPage() {
   const router = useRouter();
+  const toast = useToastActions();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newPIName, setNewPIName] = useState("");
   const [newPIIterations, setNewPIIterations] = useState("5");
 
-  const [isCreating, setIsCreating] = useState(false);
+  const { data: pisData, isLoading, error } = usePIs();
+  const createPI = useCreatePI();
+
+  const pis: PICardData[] = (pisData?.pis || []).map((pi) => ({
+    ...pi,
+    teams: pi.teamsCount || 0,
+    dependencies: pi.dependenciesCount || 0,
+    risks: pi.risksCount || 0,
+  }));
 
   const handleCreatePI = async () => {
-    setIsCreating(true);
     try {
-      // In real app, this would create a PI in the database and return the ID
-      // For now, generate a temporary ID based on name
-      const tempId = `pi-${newPIName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
-      console.log("Creating PI:", { name: newPIName, iterations: newPIIterations, id: tempId });
+      const iterations = parseInt(newPIIterations) || 5;
+      const startDate = new Date();
+      const endDate = addWeeks(startDate, iterations * 2);
+
+      const result = await createPI.mutateAsync({
+        name: newPIName,
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+        iterationCount: iterations,
+        iterationLengthWeeks: 2,
+      });
+
       setIsCreateModalOpen(false);
       setNewPIName("");
       setNewPIIterations("5");
-      // Navigate to the created PI
-      router.push(`/horizon/${tempId}`);
-    } catch (error) {
-      console.error("Failed to create PI:", error);
-    } finally {
-      setIsCreating(false);
+
+      if (result.pi?.id) {
+        toast.success("PI created", `${newPIName} is ready for planning`);
+        router.push(`/horizon/${result.pi.id}`);
+      }
+    } catch (err) {
+      toast.error("Failed to create PI", err instanceof Error ? err.message : "Unknown error");
     }
   };
 
@@ -230,7 +254,14 @@ export default function HorizonPage() {
         }
       />
 
-      {mockPIs.length === 0 ? (
+      {isLoading ? (
+        <LoadingState />
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <AlertTriangle className="w-12 h-12 text-coral mb-4" />
+          <p className="text-text-secondary">Failed to load Program Increments</p>
+        </div>
+      ) : pis.length === 0 ? (
         <EmptyPIState onCreate={() => setIsCreateModalOpen(true)} />
       ) : (
         <motion.div
@@ -239,7 +270,7 @@ export default function HorizonPage() {
           initial="hidden"
           animate="visible"
         >
-          {mockPIs.map((pi) => (
+          {pis.map((pi) => (
             <PICard
               key={pi.id}
               pi={pi}
@@ -282,10 +313,10 @@ export default function HorizonPage() {
           </div>
         </div>
         <ModalFooter>
-          <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} disabled={isCreating}>
+          <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} disabled={createPI.isPending}>
             Cancel
           </Button>
-          <Button onClick={handleCreatePI} disabled={!newPIName || isCreating} isLoading={isCreating}>
+          <Button onClick={handleCreatePI} disabled={!newPIName || createPI.isPending} isLoading={createPI.isPending}>
             Create PI
           </Button>
         </ModalFooter>

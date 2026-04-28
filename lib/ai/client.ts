@@ -1,7 +1,17 @@
-import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerativeModel, GenerateContentResult } from "@google/generative-ai";
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error("GEMINI_API_KEY environment variable is not set");
+}
+
+// Default timeout for AI operations (60 seconds)
+export const AI_REQUEST_TIMEOUT_MS = 60_000;
+
+export class AITimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`AI request timed out after ${timeoutMs}ms`);
+    this.name = "AITimeoutError";
+  }
 }
 
 // Initialize the Gemini AI client
@@ -65,3 +75,37 @@ export const SAFETY_SETTINGS = [
     threshold: "BLOCK_MEDIUM_AND_ABOVE",
   },
 ];
+
+/**
+ * Wrap an AI operation with a timeout
+ */
+export async function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number = AI_REQUEST_TIMEOUT_MS
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new AITimeoutError(timeoutMs));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([operation, timeoutPromise]);
+    return result;
+  } finally {
+    clearTimeout(timeoutId!);
+  }
+}
+
+/**
+ * Generate content with timeout protection
+ */
+export async function generateContentWithTimeout(
+  model: GenerativeModel,
+  params: Parameters<GenerativeModel["generateContent"]>[0],
+  timeoutMs: number = AI_REQUEST_TIMEOUT_MS
+): Promise<GenerateContentResult> {
+  return withTimeout(model.generateContent(params), timeoutMs);
+}

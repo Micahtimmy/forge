@@ -1,11 +1,13 @@
 /**
  * AI Prompt for Stakeholder Update Generation
- * Version: 1.0.0
+ * Version: 1.1.0
  *
  * Generates audience-aware stakeholder updates based on sprint context.
  */
 
-export const PROMPT_VERSION = "1.0.0";
+import { sanitizeForPrompt, sanitizeStringArray } from "../sanitize";
+
+export const PROMPT_VERSION = "1.1.0";
 
 export const GENERATE_UPDATE_SYSTEM = `You are a senior program manager expert at writing stakeholder communications. You craft clear, concise, audience-appropriate updates that communicate sprint progress effectively.
 
@@ -99,18 +101,49 @@ export function buildUpdatePrompt(
     5: "casual",
   };
 
+  // Sanitize all user-provided content
+  const safeSprintName = sanitizeForPrompt(context.sprintName, { maxLength: 200 });
+  const safeSprintGoal = context.sprintGoal
+    ? sanitizeForPrompt(context.sprintGoal, { maxLength: 500 })
+    : null;
+
+  const safeCompletedStories = context.completedStories?.map((s) => ({
+    key: sanitizeForPrompt(s.key, { maxLength: 50 }),
+    title: sanitizeForPrompt(s.title, { maxLength: 200 }),
+    points: s.points,
+  })) || [];
+
+  const safeInProgressStories = context.inProgressStories?.map((s) => ({
+    key: sanitizeForPrompt(s.key, { maxLength: 50 }),
+    title: sanitizeForPrompt(s.title, { maxLength: 200 }),
+    progress: s.progress,
+  })) || [];
+
+  const safeBlockers = context.blockers?.map((b) => ({
+    description: sanitizeForPrompt(b.description, { maxLength: 500 }),
+    impact: sanitizeForPrompt(b.impact, { maxLength: 200 }),
+    resolution: b.resolution ? sanitizeForPrompt(b.resolution, { maxLength: 200 }) : undefined,
+  })) || [];
+
+  const safeHighlights = sanitizeStringArray(context.highlights, { maxItems: 20, maxItemLength: 300 });
+  const safeRisks = sanitizeStringArray(context.risks, { maxItems: 20, maxItemLength: 300 });
+  const safeDecisions = sanitizeStringArray(context.decisions, { maxItems: 20, maxItemLength: 300 });
+  const safeAdditionalContext = context.additionalContext
+    ? sanitizeForPrompt(context.additionalContext, { maxLength: 2000 })
+    : null;
+
   let prompt = `## Context for Update
 
-**Sprint:** ${context.sprintName}
-${context.sprintGoal ? `**Sprint Goal:** ${context.sprintGoal}` : ""}
+**Sprint:** ${safeSprintName}
+${safeSprintGoal ? `**Sprint Goal:** ${safeSprintGoal}` : ""}
 
 **Audience:** ${audience}
 **Tone:** ${toneDesc[tone]}
 
 ### Completed Work
 ${
-  context.completedStories?.length
-    ? context.completedStories
+  safeCompletedStories.length
+    ? safeCompletedStories
         .map((s) => `- ${s.key}: ${s.title}${s.points ? ` (${s.points} pts)` : ""}`)
         .join("\n")
     : "No stories completed yet"
@@ -118,8 +151,8 @@ ${
 
 ### In Progress
 ${
-  context.inProgressStories?.length
-    ? context.inProgressStories
+  safeInProgressStories.length
+    ? safeInProgressStories
         .map((s) => `- ${s.key}: ${s.title}${s.progress ? ` (${s.progress}% done)` : ""}`)
         .join("\n")
     : "No stories currently in progress"
@@ -127,8 +160,8 @@ ${
 
 ### Blockers
 ${
-  context.blockers?.length
-    ? context.blockers
+  safeBlockers.length
+    ? safeBlockers
         .map(
           (b) =>
             `- ${b.description}\n  Impact: ${b.impact}${b.resolution ? `\n  Resolution: ${b.resolution}` : ""}`
@@ -144,32 +177,32 @@ ${
 Target: ${context.velocityTarget ?? "N/A"} | Actual: ${context.velocityActual ?? "N/A"}`;
   }
 
-  if (context.highlights?.length) {
+  if (safeHighlights.length) {
     prompt += `
 
 ### Highlights
-${context.highlights.map((h) => `- ${h}`).join("\n")}`;
+${safeHighlights.map((h) => `- ${h}`).join("\n")}`;
   }
 
-  if (context.risks?.length) {
+  if (safeRisks.length) {
     prompt += `
 
 ### Risks
-${context.risks.map((r) => `- ${r}`).join("\n")}`;
+${safeRisks.map((r) => `- ${r}`).join("\n")}`;
   }
 
-  if (context.decisions?.length) {
+  if (safeDecisions.length) {
     prompt += `
 
 ### Key Decisions
-${context.decisions.map((d) => `- ${d}`).join("\n")}`;
+${safeDecisions.map((d) => `- ${d}`).join("\n")}`;
   }
 
-  if (context.additionalContext) {
+  if (safeAdditionalContext) {
     prompt += `
 
 ### Additional Context
-${context.additionalContext}`;
+${safeAdditionalContext}`;
   }
 
   prompt += `

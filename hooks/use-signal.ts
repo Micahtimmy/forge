@@ -1,7 +1,27 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SignalUpdate, AudienceType, SignalDraft } from "@/types/signal";
+import type { AudienceType } from "@/types/signal";
+
+// API response type for a single update with drafts
+interface SignalUpdateResponse {
+  id: string;
+  sprintRef: string | null;
+  status: "draft" | "sent" | "archived";
+  authorId: string;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  drafts: Array<{
+    id: string;
+    audience: AudienceType;
+    content: string;
+    tone: number;
+    aiGenerated: boolean;
+    editedAt: string | null;
+    createdAt: string;
+  }>;
+}
 
 interface SignalFilters {
   status?: "draft" | "sent" | "archived";
@@ -10,8 +30,18 @@ interface SignalFilters {
   offset?: number;
 }
 
+// Simplified update for list views (less data than full response)
+interface SignalUpdateListItem {
+  id: string;
+  sprintRef: string | null;
+  status: "draft" | "sent" | "archived";
+  authorId: string;
+  sentAt: string | null;
+  createdAt: string;
+}
+
 interface SignalUpdatesResponse {
-  updates: SignalUpdate[];
+  updates: SignalUpdateListItem[];
   total: number;
   hasMore: boolean;
 }
@@ -42,7 +72,7 @@ export function useSignalUpdates(filters: SignalFilters = {}) {
       if (filters.limit) params.set("limit", filters.limit.toString());
       if (filters.offset) params.set("offset", filters.offset.toString());
 
-      const response = await fetch(`/api/signal?${params.toString()}`);
+      const response = await fetch(`/api/signal/updates?${params.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch updates");
       }
@@ -54,11 +84,11 @@ export function useSignalUpdates(filters: SignalFilters = {}) {
 
 // Fetch a single update by ID
 export function useSignalUpdate(updateId: string | null) {
-  return useQuery<SignalUpdate>({
+  return useQuery<SignalUpdateResponse>({
     queryKey: ["signal-update", updateId],
     queryFn: async () => {
       if (!updateId) throw new Error("Update ID required");
-      const response = await fetch(`/api/signal/${updateId}`);
+      const response = await fetch(`/api/signal/updates/${updateId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch update");
       }
@@ -66,6 +96,61 @@ export function useSignalUpdate(updateId: string | null) {
     },
     enabled: !!updateId,
     staleTime: 60 * 1000, // 1 minute
+  });
+}
+
+// Create a new signal update
+export function useCreateSignalUpdate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sprintRef: string) => {
+      const response = await fetch("/api/signal/updates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sprintRef }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create update");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["signal-updates"] });
+    },
+  });
+}
+
+// Update signal status
+export function useUpdateSignalStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      updateId,
+      status,
+    }: {
+      updateId: string;
+      status: "draft" | "sent" | "archived";
+    }) => {
+      const response = await fetch(`/api/signal/updates/${updateId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update status");
+      }
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["signal-updates"] });
+      queryClient.invalidateQueries({
+        queryKey: ["signal-update", variables.updateId],
+      });
+    },
   });
 }
 
@@ -150,11 +235,17 @@ export function useSaveDraft() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (draft: SignalDraft) => {
+    mutationFn: async (data: {
+      updateId: string;
+      audience: AudienceType;
+      content: string;
+      tone: number;
+      aiGenerated?: boolean;
+    }) => {
       const response = await fetch("/api/signal/drafts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -164,8 +255,11 @@ export function useSaveDraft() {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["signal-updates"] });
+      queryClient.invalidateQueries({
+        queryKey: ["signal-update", variables.updateId],
+      });
     },
   });
 }
@@ -179,15 +273,21 @@ export function useSendUpdate() {
       updateId,
       audiences,
       channels,
+      recipients,
     }: {
       updateId: string;
       audiences: AudienceType[];
       channels: ("email" | "slack")[];
+      recipients?: Array<{
+        email: string;
+        name?: string;
+        audience: AudienceType;
+      }>;
     }) => {
       const response = await fetch(`/api/signal/${updateId}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audiences, channels }),
+        body: JSON.stringify({ audiences, channels, recipients }),
       });
 
       if (!response.ok) {
@@ -210,7 +310,7 @@ export function useDeleteUpdate() {
 
   return useMutation({
     mutationFn: async (updateId: string) => {
-      const response = await fetch(`/api/signal/${updateId}`, {
+      const response = await fetch(`/api/signal/updates/${updateId}`, {
         method: "DELETE",
       });
 

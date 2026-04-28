@@ -41,12 +41,14 @@ interface UpdateComposerProps {
     highlights?: string[];
     risks?: string[];
   };
+  updateId?: string;
   onSend?: (audiences: AudienceType[], content: Record<AudienceType, string>) => void;
+  onDraftSaved?: (audience: AudienceType, content: string) => void;
 }
 
 const allAudiences: AudienceType[] = ["executive", "team", "client", "board"];
 
-export function UpdateComposer({ context, onSend }: UpdateComposerProps) {
+export function UpdateComposer({ context, updateId, onSend, onDraftSaved }: UpdateComposerProps) {
   const toast = useToastActions();
   const [selectedAudiences, setSelectedAudiences] = useState<AudienceType[]>([
     "executive",
