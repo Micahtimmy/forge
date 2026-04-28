@@ -417,7 +417,8 @@ export const DEMO_STORIES: StoryWithScore[] = [
 
 // Demo sprints
 export const DEMO_SPRINTS = [
-  { id: "sprint-22", name: "Sprint 22", startDate: "2026-04-14", endDate: "2026-04-27", state: "active" },
+  { id: "sprint-23", name: "Sprint 23", startDate: "2026-04-28", endDate: "2026-05-11", state: "active" },
+  { id: "sprint-22", name: "Sprint 22", startDate: "2026-04-14", endDate: "2026-04-27", state: "closed" },
   { id: "sprint-21", name: "Sprint 21", startDate: "2026-03-31", endDate: "2026-04-13", state: "closed" },
   { id: "sprint-20", name: "Sprint 20", startDate: "2026-03-17", endDate: "2026-03-30", state: "closed" },
   { id: "sprint-19", name: "Sprint 19", startDate: "2026-03-03", endDate: "2026-03-16", state: "closed" },
@@ -683,11 +684,13 @@ export const DEMO_RUBRIC = {
 
 // Demo team members
 export const DEMO_TEAM = [
-  { id: "user-1", name: "Adaora Okonkwo", email: "adaora@example.com", role: "Scrum Master", avatar: null },
-  { id: "user-2", name: "Chidi Eze", email: "chidi@example.com", role: "Product Manager", avatar: null },
-  { id: "user-3", name: "Ngozi Obi", email: "ngozi@example.com", role: "Engineer", avatar: null },
-  { id: "user-4", name: "Emeka Nwosu", email: "emeka@example.com", role: "Engineer", avatar: null },
-  { id: "user-5", name: "Funke Adeyemi", email: "funke@example.com", role: "Designer", avatar: null },
+  { id: "user-1", name: "Adaora Okonkwo", email: "adaora@example.com", role: "Scrum Master", avatar: null, status: "online" },
+  { id: "user-2", name: "Chidi Eze", email: "chidi@example.com", role: "Product Manager", avatar: null, status: "online" },
+  { id: "user-3", name: "Ngozi Obi", email: "ngozi@example.com", role: "Senior Engineer", avatar: null, status: "away" },
+  { id: "user-4", name: "Emeka Nwosu", email: "emeka@example.com", role: "Engineer", avatar: null, status: "online" },
+  { id: "user-5", name: "Funke Adeyemi", email: "funke@example.com", role: "UX Designer", avatar: null, status: "offline" },
+  { id: "user-6", name: "Tunde Bakare", email: "tunde@example.com", role: "DevOps Engineer", avatar: null, status: "online" },
+  { id: "user-7", name: "Amara Okafor", email: "amara@example.com", role: "QA Engineer", avatar: null, status: "online" },
 ];
 
 // Helper functions
@@ -722,7 +725,8 @@ export const DEMO_SPRINT_HISTORY = [
   { sprint: "S19", avgScore: 62, stories: 11 },
   { sprint: "S20", avgScore: 68, stories: 12 },
   { sprint: "S21", avgScore: 72, stories: 10 },
-  { sprint: "S22", avgScore: 69, stories: 12 },
+  { sprint: "S22", avgScore: 74, stories: 12 },
+  { sprint: "S23", avgScore: 71, stories: 8 },
 ];
 
 // Quality trend data for charts
@@ -734,7 +738,8 @@ export const DEMO_QUALITY_TREND = [
   { sprint: "S19", score: 62 },
   { sprint: "S20", score: 68 },
   { sprint: "S21", score: 72 },
-  { sprint: "S22", score: 69 },
+  { sprint: "S22", score: 74 },
+  { sprint: "S23", score: 71 },
 ];
 
 // Velocity data
@@ -743,7 +748,8 @@ export const DEMO_VELOCITY = [
   { sprint: "S19", committed: 28, completed: 26 },
   { sprint: "S20", committed: 30, completed: 28 },
   { sprint: "S21", committed: 28, completed: 28 },
-  { sprint: "S22", committed: 32, completed: 24 },
+  { sprint: "S22", committed: 32, completed: 30 },
+  { sprint: "S23", committed: 30, completed: 18 },
 ];
 
 // Burndown data for current sprint
@@ -913,4 +919,254 @@ export const DEMO_CUMULATIVE_FLOW = [
   { date: "Apr 10", backlog: 12, ready: 5, inProgress: 3, review: 3, done: 18 },
   { date: "Apr 15", backlog: 10, ready: 4, inProgress: 3, review: 2, done: 24 },
   { date: "Apr 20", backlog: 8, ready: 3, inProgress: 3, review: 1, done: 30 },
+];
+
+// Demo decisions for Decision Intelligence module
+export const DEMO_DECISIONS = [
+  {
+    id: "dec-1",
+    title: "Migrate to Paystack from Stripe",
+    description: "Switch payment provider from Stripe to Paystack to better serve Nigerian market with local payment methods (Verve, bank transfers, USSD).",
+    decisionType: "technical_decision" as const,
+    context: {
+      currentProvider: "Stripe",
+      newProvider: "Paystack",
+      reason: "Better local payment support for Nigerian market",
+      affectedSystems: ["Billing", "Subscriptions", "Webhooks"],
+    },
+    decision: {
+      choice: "Migrate to Paystack",
+      alternatives: ["Stay with Stripe", "Use both providers"],
+      rationale: "Paystack has 95% coverage of Nigerian payment methods vs Stripe's 40%",
+    },
+    aiSummary: "Decision to migrate payment processing from Stripe to Paystack for improved Nigerian market coverage. Key risk: webhook migration complexity. Expected 3-week implementation timeline.",
+    aiRiskAssessment: {
+      riskLevel: "medium",
+      risks: [
+        "Webhook migration may cause payment notification delays",
+        "Testing requires Nigerian bank accounts",
+        "Historical subscription data needs careful migration",
+      ],
+      mitigations: [
+        "Run parallel processing for 2 weeks",
+        "Partner with Nigerian QA team for testing",
+        "Create data migration scripts with rollback capability",
+      ],
+    },
+    outcomeStatus: "successful" as const,
+    outcome: {
+      actualTimeline: "2.5 weeks",
+      successMetrics: {
+        paymentSuccessRate: "98.5%",
+        localPaymentAdoption: "72%",
+        customerSatisfaction: "+15%",
+      },
+    },
+    createdBy: "user-2",
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ["payments", "infrastructure", "nigeria"],
+    visibility: "workspace" as const,
+  },
+  {
+    id: "dec-2",
+    title: "Adopt SAFe for PI Planning",
+    description: "Implement SAFe framework for quarterly planning increments to improve cross-team coordination.",
+    decisionType: "process_change" as const,
+    context: {
+      currentProcess: "Independent Scrum teams",
+      proposedProcess: "SAFe PI Planning",
+      teamCount: 4,
+      coordinationChallenges: ["Dependency conflicts", "Unclear priorities", "Capacity misalignment"],
+    },
+    decision: {
+      choice: "Adopt SAFe Essential",
+      alternatives: ["Continue with Scrum of Scrums", "LeSS framework", "Custom hybrid"],
+      rationale: "SAFe provides structured PI planning which addresses our cross-team dependency issues",
+    },
+    aiSummary: "Adopting SAFe Essential framework to improve cross-team coordination. Focus on PI Planning ceremonies and dependency management. Training required for all team leads.",
+    outcomeStatus: "partial" as const,
+    outcome: {
+      positives: ["Better dependency visibility", "Improved quarterly predictability"],
+      challenges: ["Ceremony overhead initially high", "Some team resistance"],
+      lessonsLearned: "Start with just PI Planning before full SAFe adoption",
+    },
+    createdBy: "user-1",
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ["process", "safe", "planning"],
+    visibility: "workspace" as const,
+  },
+  {
+    id: "dec-3",
+    title: "Prioritize Mobile App over Desktop",
+    description: "Focus Q2 resources on mobile app MVP instead of desktop enhancements based on user research.",
+    decisionType: "priority_shift" as const,
+    context: {
+      userResearch: {
+        mobileUsageIntent: "78%",
+        desktopOnlyUsers: "12%",
+        requestedMobileFeatures: ["Quick updates", "Push notifications", "Offline access"],
+      },
+      resourceConstraints: "Cannot do both in Q2",
+    },
+    decision: {
+      choice: "Mobile-first for Q2",
+      alternatives: ["Desktop-first", "Split 50/50"],
+      rationale: "78% of target users prefer mobile access; aligns with Nigerian market where mobile-first is dominant",
+    },
+    aiSummary: "Strategic shift to mobile-first development based on 78% user preference. Desktop enhancements deferred to Q3. Risk: may lose some enterprise desktop users.",
+    outcomeStatus: "pending" as const,
+    createdBy: "user-2",
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ["strategy", "mobile", "prioritization"],
+    visibility: "workspace" as const,
+  },
+  {
+    id: "dec-4",
+    title: "Accept Technical Debt in Auth Module",
+    description: "Ship OAuth implementation with known code duplication to meet launch deadline; refactor in Sprint 24.",
+    decisionType: "risk_acceptance" as const,
+    context: {
+      deadline: "2026-04-30",
+      technicalDebt: "Duplicated token refresh logic in 3 places",
+      refactorEstimate: "5 story points",
+      currentSprint: "Sprint 22 (fully committed)",
+    },
+    decision: {
+      choice: "Accept debt, ship now, refactor Sprint 24",
+      alternatives: ["Delay launch", "Quick refactor now (risky)"],
+      rationale: "Launch deadline is firm; debt is isolated and well-documented",
+    },
+    aiSummary: "Accepting isolated technical debt in OAuth module to meet launch deadline. Debt is well-documented with 5-point refactor scheduled for Sprint 24. Low risk of escalation.",
+    aiRiskAssessment: {
+      riskLevel: "low",
+      risks: ["Maintenance burden if refactor is delayed", "Potential bugs from duplication"],
+      mitigations: ["Created tech debt ticket with high priority", "Added extensive test coverage"],
+    },
+    outcomeStatus: "successful" as const,
+    outcome: {
+      launched: "On time",
+      debtPaid: "Sprint 23 (ahead of schedule)",
+      incidents: "Zero related incidents",
+    },
+    createdBy: "user-3",
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ["tech-debt", "auth", "tradeoff"],
+    visibility: "team" as const,
+  },
+  {
+    id: "dec-5",
+    title: "Hire Contract DevOps Engineer",
+    description: "Bring in a 6-month contract DevOps engineer to accelerate infrastructure automation and reduce deployment friction.",
+    decisionType: "resource_allocation" as const,
+    context: {
+      currentState: "Manual deployments taking 2+ hours",
+      teamBandwidth: "No DevOps expertise in-house",
+      budget: "Available from Q2 contingency",
+    },
+    decision: {
+      choice: "Hire 6-month contractor",
+      alternatives: ["Train existing engineer", "Outsource to agency", "Continue manually"],
+      rationale: "Fastest path to automation; knowledge transfer included in contract",
+    },
+    aiSummary: "Resource decision to hire contract DevOps engineer for infrastructure automation. 6-month engagement with knowledge transfer clause. Expected ROI: 80% reduction in deployment time.",
+    outcomeStatus: "pending" as const,
+    createdBy: "user-2",
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ["hiring", "devops", "infrastructure"],
+    visibility: "workspace" as const,
+  },
+];
+
+// Decision statistics
+export const DEMO_DECISION_STATS = {
+  total: 5,
+  byType: {
+    technical_decision: 1,
+    process_change: 1,
+    priority_shift: 1,
+    risk_acceptance: 1,
+    resource_allocation: 1,
+  },
+  byOutcome: {
+    successful: 2,
+    partial: 1,
+    pending: 2,
+    failed: 0,
+  },
+  successRate: 85,
+  avgTimeToOutcome: "3.2 weeks",
+};
+
+// Demo notifications
+export const DEMO_NOTIFICATIONS = [
+  {
+    id: "notif-1",
+    type: "score_alert" as const,
+    title: "Low Story Score Alert",
+    message: "FORGE-102 scored 38/100. Consider improving acceptance criteria.",
+    storyKey: "FORGE-102",
+    read: false,
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "notif-2",
+    type: "sync_complete" as const,
+    title: "JIRA Sync Complete",
+    message: "Synced 12 stories from Sprint 23. 3 new, 5 updated.",
+    read: false,
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "notif-3",
+    type: "dependency_risk" as const,
+    title: "Dependency At Risk",
+    message: "Mobile payments depend on Payment Gateway (at risk). Review in Horizon.",
+    read: true,
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "notif-4",
+    type: "team_invite" as const,
+    title: "New Team Member",
+    message: "Tunde Bakare has joined the workspace as DevOps Engineer.",
+    read: true,
+    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "notif-5",
+    type: "pi_milestone" as const,
+    title: "PI Objective Achieved",
+    message: "Achieved 95% JIRA sync reliability ahead of schedule!",
+    read: true,
+    createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Demo quality gates
+export const DEMO_QUALITY_GATES = [
+  {
+    id: "gate-1",
+    name: "Story Ready for Sprint",
+    description: "Minimum criteria for a story to be pulled into a sprint",
+    isActive: true,
+    rules: [
+      { field: "score", operator: "gte", value: 60, message: "Story score must be at least 60" },
+      { field: "acceptanceCriteria", operator: "exists", value: true, message: "Acceptance criteria required" },
+      { field: "storyPoints", operator: "exists", value: true, message: "Story must be estimated" },
+    ],
+    appliesTo: ["sprint_planning"],
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "gate-2",
+    name: "High-Quality Story",
+    description: "Criteria for stories that meet our quality bar",
+    isActive: true,
+    rules: [
+      { field: "score", operator: "gte", value: 80, message: "Story score must be at least 80" },
+      { field: "testability", operator: "gte", value: 12, message: "Testability score must be at least 12/15" },
+    ],
+    appliesTo: ["quality_report"],
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
