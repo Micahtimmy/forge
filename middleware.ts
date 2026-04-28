@@ -40,6 +40,8 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", "/invite", "/demo"];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
+  // Root path "/" should redirect to login if not authenticated (handled below)
+
   // Auth callback routes - these handle OAuth and email verification
   const isAuthCallbackRoute = pathname.startsWith("/auth/callback") || pathname.startsWith("/auth/confirm");
 
@@ -69,11 +71,16 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Redirect to login if not authenticated
+  // Redirect to signup/login if not authenticated
   if (!user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirect", pathname);
+    // Root path goes to signup (new users), other paths go to login with redirect
+    if (pathname === "/") {
+      url.pathname = "/signup";
+    } else {
+      url.pathname = "/login";
+      url.searchParams.set("redirect", pathname);
+    }
     return NextResponse.redirect(url);
   }
 
