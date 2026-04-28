@@ -74,8 +74,8 @@ export async function middleware(request: NextRequest) {
   // Redirect to signup/login if not authenticated
   if (!user) {
     const url = request.nextUrl.clone();
-    // Root path goes to signup (new users), other paths go to login with redirect
-    if (pathname === "/") {
+    // Root path and onboarding go to signup (new users need to auth first)
+    if (pathname === "/" || pathname.startsWith("/onboarding")) {
       url.pathname = "/signup";
     } else {
       url.pathname = "/login";
@@ -86,6 +86,7 @@ export async function middleware(request: NextRequest) {
 
   // Allow onboarding route for authenticated users
   if (isOnboardingRoute) {
+    // User is authenticated, let them proceed to onboarding
     return supabaseResponse;
   }
 
