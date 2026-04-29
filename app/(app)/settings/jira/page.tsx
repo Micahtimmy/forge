@@ -43,9 +43,9 @@ export default function JiraSettingsPage() {
     window.location.href = "/api/jira/auth";
   };
 
-  const handleSync = async () => {
+  const handleSync = async (fullSync: boolean = false) => {
     try {
-      const result = await syncMutation.mutateAsync(false);
+      const result = await syncMutation.mutateAsync(fullSync);
       toast.success("Sync complete", `Synced ${result.stories?.synced ?? 0} stories from JIRA`);
     } catch (err) {
       toast.error("Sync failed", err instanceof Error ? err.message : "Unknown error");
@@ -161,11 +161,19 @@ export default function JiraSettingsPage() {
             <div className="pt-4 border-t border-border flex items-center gap-3">
               <Button
                 variant="secondary"
-                onClick={handleSync}
+                onClick={() => handleSync(false)}
                 isLoading={syncMutation.isPending}
                 leftIcon={syncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               >
-                {syncMutation.isPending ? "Syncing..." : "Sync Now"}
+                {syncMutation.isPending ? "Syncing..." : "Sync Recent"}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => handleSync(true)}
+                isLoading={syncMutation.isPending}
+                leftIcon={syncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              >
+                {syncMutation.isPending ? "Syncing..." : "Full Sync"}
               </Button>
               {siteUrl && (
                 <Button

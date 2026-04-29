@@ -108,15 +108,17 @@ export async function syncStoriesFromJira(
       })
       .eq("workspace_id", workspaceId);
 
-    // Build JQL query
-    let jql = `project = "${projectKey}" AND issuetype IN ("Story", "Bug", "Task", "Sub-task")`;
+    // Build JQL query - include more issue types and be more flexible
+    let jql = `project = "${projectKey}" AND issuetype IN ("Story", "Bug", "Task", "Sub-task", "Epic", "Feature", "Improvement")`;
 
     if (!fullSync) {
-      // Only get recently updated issues
-      jql += " AND updated >= -7d";
+      // Only get recently updated issues (last 30 days for better results)
+      jql += " AND updated >= -30d";
     }
 
     jql += " ORDER BY updated DESC";
+
+    console.log("JIRA sync JQL:", jql);
 
     // Fetch issues in batches
     const allIssues: JiraIssue[] = [];
