@@ -149,11 +149,21 @@ export class JiraClient {
 
   // Projects
   async getProjects(): Promise<JiraProject[]> {
-    const response = await this.request<{
-      values: JiraProject[];
-      isLast: boolean;
-    }>(`${this.baseUrl}/project/search?maxResults=100`);
-    return response.values;
+    try {
+      // Try the newer search endpoint first
+      const response = await this.request<{
+        values: JiraProject[];
+        isLast: boolean;
+      }>(`${this.baseUrl}/project/search?maxResults=100`);
+      return response.values;
+    } catch (error) {
+      // Fall back to the older endpoint if search fails (410 Gone or other errors)
+      if (error instanceof JiraApiError && (error.statusCode === 410 || error.statusCode === 404)) {
+        const projects = await this.request<JiraProject[]>(`${this.baseUrl}/project`);
+        return projects;
+      }
+      throw error;
+    }
   }
 
   async getProject(projectKeyOrId: string): Promise<JiraProject> {

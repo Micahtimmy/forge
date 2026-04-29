@@ -416,13 +416,20 @@ export async function getProjectKeysForWorkspace(
   try {
     const client = await getJiraClientForWorkspace(workspaceId);
     if (!client) {
+      console.error("No JIRA client available for workspace:", workspaceId);
       return [];
     }
 
+    console.log("Fetching projects from JIRA API...");
     const projects = await client.getProjects();
+    console.log("Found JIRA projects:", projects.map(p => p.key));
     return projects.map((p) => p.key);
   } catch (error) {
     console.error("Failed to fetch JIRA projects:", error);
-    return [];
+    // Re-throw to give a more helpful error message
+    if (error instanceof JiraApiError) {
+      throw new Error(`JIRA API Error: ${error.message} (Status: ${error.statusCode})`);
+    }
+    throw error;
   }
 }
