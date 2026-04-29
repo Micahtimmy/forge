@@ -71,6 +71,21 @@ function normalizeJiraIssue(issue: JiraIssue): NormalizedJiraStory {
   };
 }
 
+// Default issue types to sync
+const DEFAULT_ISSUE_TYPES = [
+  "Story",
+  "Bug",
+  "Task",
+  "Sub-task",
+  "Epic",
+  "Feature",
+  "Improvement",
+  "Objective",
+  "Initiative",
+  "Spike",
+  "Technical Debt",
+];
+
 // Sync stories from JIRA to database
 export async function syncStoriesFromJira(
   workspaceId: string,
@@ -78,12 +93,18 @@ export async function syncStoriesFromJira(
   options: {
     fullSync?: boolean;
     maxResults?: number;
+    issueTypes?: string[];
+    dateRange?: {
+      from?: string;
+      to?: string;
+      preset?: "7d" | "30d" | "90d" | "all";
+    };
   } = {}
 ): Promise<{
   synced: number;
   errors: string[];
 }> {
-  const { fullSync = false, maxResults = 500 } = options;
+  const { fullSync = false, maxResults = 500, issueTypes, dateRange } = options;
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -108,17 +129,48 @@ export async function syncStoriesFromJira(
       })
       .eq("workspace_id", workspaceId);
 
-    // Build JQL query - include more issue types and be more flexible
-    let jql = `project = "${projectKey}" AND issuetype IN ("Story", "Bug", "Task", "Sub-task", "Epic", "Feature", "Improvement")`;
+    // Build JQL query with configurable issue types and date range
+    const typesToSync = issueTypes && issueTypes.length > 0
+      ? issueTypes
+      : DEFAULT_ISSUE_TYPES;
 
+    const typesList = typesToSync.map(t => `"${t}"`).join(", ");
+    let jql = `project = "${projectKey}" AND issuetype IN (${typesList})`;
+
+    // Handle date range
     if (!fullSync) {
-      // Only get recently updated issues (last 30 days for better results)
-      jql += " AND updated >= -30d";
+      if (dateRange?.preset) {
+        switch (dateRange.preset) {
+          case "7d":
+            jql += " AND updated >= -7d";
+            break;
+          case "30d":
+            jql += " AND updated >= -30d";
+            break;
+          case "90d":
+            jql += " AND updated >= -90d";
+            break;
+          case "all":
+            // No date filter
+            break;
+        }
+      } else if (dateRange?.from || dateRange?.to) {
+        if (dateRange.from) {
+          jql += ` AND updated >= "${dateRange.from}"`;
+        }
+        if (dateRange.to) {
+          jql += ` AND updated <= "${dateRange.to}"`;
+        }
+      } else {
+        // Default to last 30 days
+        jql += " AND updated >= -30d";
+      }
     }
 
     jql += " ORDER BY updated DESC";
 
     console.log("JIRA sync JQL:", jql);
+    console.log("Issue types:", typesToSync);
 
     // Fetch issues in batches
     const allIssues: JiraIssue[] = [];

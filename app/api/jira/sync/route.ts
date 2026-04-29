@@ -8,8 +8,16 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
 const syncSchema = z.object({
   projectKey: z.string().optional(),
+  projectKeys: z.array(z.string()).optional(),
   boardId: z.number().optional(),
+  boardIds: z.array(z.number()).optional(),
   fullSync: z.boolean().optional(),
+  issueTypes: z.array(z.string()).optional(),
+  dateRange: z.object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+    preset: z.enum(["7d", "30d", "90d", "all"]).optional(),
+  }).optional(),
 });
 
 // Trigger manual JIRA sync
@@ -115,6 +123,8 @@ export async function POST(req: NextRequest) {
           projectKey,
           {
             fullSync: validated.fullSync,
+            issueTypes: validated.issueTypes,
+            dateRange: validated.dateRange,
           }
         );
         totalStoriesSynced += storyResult.synced;

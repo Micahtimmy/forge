@@ -13,9 +13,14 @@ import {
   Loader2,
   FolderKanban,
   Search,
+  Calendar,
+  LayoutGrid,
+  Filter,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { PageHeaderCompact } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,14 +31,45 @@ import { useToastActions } from "@/components/ui/toast";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   useJiraStatus,
   useJiraSync,
   useJiraDisconnect,
   useJiraProjects,
   useUpdateJiraProjects,
+  useJiraBoards,
   JiraProject,
+  SyncOptions,
 } from "@/hooks/use-jira";
 import { fadeIn } from "@/lib/motion/variants";
+
+// Default issue types that teams commonly use
+const ALL_ISSUE_TYPES = [
+  { value: "Story", label: "Story" },
+  { value: "Task", label: "Task" },
+  { value: "Bug", label: "Bug" },
+  { value: "Epic", label: "Epic" },
+  { value: "Sub-task", label: "Sub-task" },
+  { value: "Objective", label: "Objective" },
+  { value: "Initiative", label: "Initiative" },
+  { value: "Feature", label: "Feature" },
+  { value: "Improvement", label: "Improvement" },
+  { value: "Spike", label: "Spike" },
+  { value: "Technical Debt", label: "Technical Debt" },
+];
+
+const DATE_RANGE_PRESETS = [
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "all", label: "All time" },
+];
 
 export default function JiraSettingsPage() {
   const router = useRouter();
@@ -41,6 +77,7 @@ export default function JiraSettingsPage() {
 
   const { data: status, isLoading, error } = useJiraStatus();
   const { data: projectsData, isLoading: projectsLoading } = useJiraProjects();
+  const { data: boardsData, isLoading: boardsLoading } = useJiraBoards();
   const syncMutation = useJiraSync();
   const disconnectMutation = useJiraDisconnect();
   const updateProjectsMutation = useUpdateJiraProjects();
@@ -49,7 +86,14 @@ export default function JiraSettingsPage() {
   const [autoSync, setAutoSync] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjects, setSelectedProjects] = useState<Map<string, JiraProject>>(new Map());
+  const [selectedBoards, setSelectedBoards] = useState<Set<number>>(new Set());
+  const [selectedIssueTypes, setSelectedIssueTypes] = useState<Set<string>>(
+    new Set(["Story", "Task", "Bug", "Epic", "Objective"])
+  );
+  const [dateRangePreset, setDateRangePreset] = useState<string>("30d");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [showBoardSelector, setShowBoardSelector] = useState(false);
 
   // Initialize selected projects from API data
   useEffect(() => {
@@ -71,7 +115,6 @@ export default function JiraSettingsPage() {
   };
 
   const handleSync = async (fullSync: boolean = false) => {
-    // Get selected project keys
     const projectKeys = Array.from(selectedProjects.keys());
 
     if (projectKeys.length === 0) {
@@ -80,9 +123,25 @@ export default function JiraSettingsPage() {
       return;
     }
 
+    const syncOptions: SyncOptions = {
+      fullSync,
+      projectKeys,
+      issueTypes: Array.from(selectedIssueTypes),
+      dateRange: {
+        preset: dateRangePreset as "7d" | "30d" | "90d" | "all",
+      },
+    };
+
+    if (selectedBoards.size > 0) {
+      syncOptions.boardIds = Array.from(selectedBoards);
+    }
+
     try {
-      const result = await syncMutation.mutateAsync(fullSync);
-      toast.success("Sync complete", `Synced ${result.stories?.synced ?? 0} stories from JIRA`);
+      const result = await syncMutation.mutateAsync(syncOptions);
+      toast.success(
+        "Sync complete",
+        `Synced ${result.stories?.synced ?? 0} items from ${result.projectsSynced ?? projectKeys.length} project(s)`
+      );
     } catch (err) {
       toast.error("Sync failed", err instanceof Error ? err.message : "Unknown error");
     }
@@ -97,6 +156,30 @@ export default function JiraSettingsPage() {
         newMap.set(project.key, { ...project, syncEnabled: true });
       }
       return newMap;
+    });
+  };
+
+  const handleToggleBoard = (boardId: number) => {
+    setSelectedBoards((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(boardId)) {
+        newSet.delete(boardId);
+      } else {
+        newSet.add(boardId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleIssueType = (issueType: string) => {
+    setSelectedIssueTypes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(issueType)) {
+        newSet.delete(issueType);
+      } else {
+        newSet.add(issueType);
+      }
+      return newSet;
     });
   };
 
@@ -117,11 +200,27 @@ export default function JiraSettingsPage() {
     }
   };
 
-  const filteredProjects = projectsData?.projects?.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.key.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  const handleSelectAllIssueTypes = () => {
+    setSelectedIssueTypes(new Set(ALL_ISSUE_TYPES.map((t) => t.value)));
+  };
+
+  const handleClearIssueTypes = () => {
+    setSelectedIssueTypes(new Set());
+  };
+
+  const filteredProjects =
+    projectsData?.projects?.filter(
+      (p) =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.key.toLowerCase().includes(searchQuery.toLowerCase())
+    ) || [];
+
+  const filteredBoards =
+    boardsData?.boards?.filter(
+      (b) =>
+        b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (b.projectKey && b.projectKey.toLowerCase().includes(searchQuery.toLowerCase()))
+    ) || [];
 
   const handleDisconnect = async () => {
     try {
@@ -139,7 +238,7 @@ export default function JiraSettingsPage() {
         <Skeleton className="h-8 w-32 mb-4" />
         <Skeleton className="h-8 w-48 mb-2" />
         <Skeleton className="h-4 w-64 mb-6" />
-        <div className="max-w-xl space-y-6">
+        <div className="max-w-2xl space-y-6">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-48 w-full" />
         </div>
@@ -171,11 +270,11 @@ export default function JiraSettingsPage() {
 
       <PageHeaderCompact
         title="JIRA Connection"
-        subtitle="Connect your Atlassian JIRA instance to sync stories"
+        subtitle="Connect your Atlassian JIRA instance to sync stories, tasks, and objectives"
       />
 
       {isConnected ? (
-        <div className="max-w-xl space-y-6">
+        <div className="max-w-2xl space-y-6">
           {/* Connection Status */}
           <div className="bg-surface-01 border border-border rounded-lg p-5">
             <div className="flex items-start justify-between">
@@ -184,19 +283,15 @@ export default function JiraSettingsPage() {
                   <CheckCircle2 className="w-5 h-5 text-jade" />
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-text-primary">
-                    Connected to JIRA
-                  </div>
-                  <div className="text-xs text-text-secondary mt-0.5">
-                    {siteName}
-                  </div>
+                  <div className="text-sm font-medium text-text-primary">Connected to JIRA</div>
+                  <div className="text-xs text-text-secondary mt-0.5">{siteName}</div>
                 </div>
               </div>
               <Badge variant="excellent">Connected</Badge>
             </div>
 
             <div className="mt-4 pt-4 border-t border-border">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
                   <div className="text-text-tertiary">Last synced</div>
                   <div className="text-text-primary font-medium">
@@ -206,8 +301,12 @@ export default function JiraSettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-text-tertiary">Stories synced</div>
-                  <div className="text-text-primary font-medium">{status?.storiesSynced || 0} stories</div>
+                  <div className="text-text-tertiary">Items synced</div>
+                  <div className="text-text-primary font-medium">{status?.storiesSynced || 0}</div>
+                </div>
+                <div>
+                  <div className="text-text-tertiary">Projects selected</div>
+                  <div className="text-text-primary font-medium">{selectedProjects.size}</div>
                 </div>
               </div>
             </div>
@@ -216,20 +315,19 @@ export default function JiraSettingsPage() {
           {/* Project Selection */}
           <div className="bg-surface-01 border border-border rounded-lg p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text-primary">
-                Projects to Sync
-              </h3>
+              <div className="flex items-center gap-2">
+                <FolderKanban className="w-4 h-4 text-text-tertiary" />
+                <h3 className="text-sm font-semibold text-text-primary">Projects</h3>
+              </div>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowProjectSelector(!showProjectSelector)}
               >
-                <FolderKanban className="w-4 h-4 mr-1" />
                 {showProjectSelector ? "Hide" : "Select Projects"}
               </Button>
             </div>
 
-            {/* Selected Projects Summary */}
             {selectedProjects.size > 0 && !showProjectSelector && (
               <div className="flex flex-wrap gap-2">
                 {Array.from(selectedProjects.values()).map((project) => (
@@ -242,14 +340,13 @@ export default function JiraSettingsPage() {
 
             {selectedProjects.size === 0 && !showProjectSelector && (
               <p className="text-sm text-text-secondary">
-                No projects selected. Click &quot;Select Projects&quot; to choose which JIRA projects to sync.
+                No projects selected. Click &quot;Select Projects&quot; to choose which JIRA projects
+                to sync.
               </p>
             )}
 
-            {/* Project Selector */}
             {showProjectSelector && (
               <div className="space-y-3 pt-2">
-                {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                   <Input
@@ -260,7 +357,6 @@ export default function JiraSettingsPage() {
                   />
                 </div>
 
-                {/* Project List */}
                 <div className="max-h-64 overflow-y-auto border border-border rounded-md divide-y divide-border">
                   {projectsLoading ? (
                     <div className="p-4 text-center text-text-secondary">
@@ -268,9 +364,7 @@ export default function JiraSettingsPage() {
                       Loading projects...
                     </div>
                   ) : filteredProjects.length === 0 ? (
-                    <div className="p-4 text-center text-text-secondary">
-                      No projects found
-                    </div>
+                    <div className="p-4 text-center text-text-secondary">No projects found</div>
                   ) : (
                     filteredProjects.map((project) => (
                       <label
@@ -282,9 +376,7 @@ export default function JiraSettingsPage() {
                           onCheckedChange={() => handleToggleProject(project)}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-text-primary">
-                            {project.name}
-                          </div>
+                          <div className="text-sm font-medium text-text-primary">{project.name}</div>
                           <div className="text-xs text-text-secondary">
                             {project.key} • {project.projectTypeKey}
                           </div>
@@ -294,7 +386,6 @@ export default function JiraSettingsPage() {
                   )}
                 </div>
 
-                {/* Selection Summary & Save */}
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm text-text-secondary">
                     {selectedProjects.size} project(s) selected
@@ -311,38 +402,214 @@ export default function JiraSettingsPage() {
             )}
           </div>
 
-          {/* Sync Settings */}
+          {/* Board Selection */}
           <div className="bg-surface-01 border border-border rounded-lg p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-text-primary">
-              Sync Settings
-            </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4 text-text-tertiary" />
+                <h3 className="text-sm font-semibold text-text-primary">Boards (Optional)</h3>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowBoardSelector(!showBoardSelector)}
+              >
+                {showBoardSelector ? "Hide" : "Select Boards"}
+              </Button>
+            </div>
+
+            {selectedBoards.size > 0 && !showBoardSelector && (
+              <div className="flex flex-wrap gap-2">
+                {boardsData?.boards
+                  ?.filter((b) => selectedBoards.has(b.id))
+                  .map((board) => (
+                    <Badge key={board.id} variant="default" className="text-xs">
+                      {board.name} ({board.type})
+                    </Badge>
+                  ))}
+              </div>
+            )}
+
+            {selectedBoards.size === 0 && !showBoardSelector && (
+              <p className="text-sm text-text-secondary">
+                No boards selected. All items from selected projects will be synced. Select specific
+                boards to filter.
+              </p>
+            )}
+
+            {showBoardSelector && (
+              <div className="space-y-3 pt-2">
+                <div className="max-h-48 overflow-y-auto border border-border rounded-md divide-y divide-border">
+                  {boardsLoading ? (
+                    <div className="p-4 text-center text-text-secondary">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                      Loading boards...
+                    </div>
+                  ) : filteredBoards.length === 0 ? (
+                    <div className="p-4 text-center text-text-secondary">No boards found</div>
+                  ) : (
+                    filteredBoards.map((board) => (
+                      <label
+                        key={board.id}
+                        className="flex items-center gap-3 p-3 hover:bg-surface-02 cursor-pointer transition-colors"
+                      >
+                        <Checkbox
+                          checked={selectedBoards.has(board.id)}
+                          onCheckedChange={() => handleToggleBoard(board.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-text-primary">{board.name}</div>
+                          <div className="text-xs text-text-secondary">
+                            {board.projectKey && `${board.projectKey} • `}
+                            {board.type} board
+                          </div>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sync Filters */}
+          <div className="bg-surface-01 border border-border rounded-lg p-5 space-y-4">
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="flex items-center justify-between w-full"
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-text-tertiary" />
+                <h3 className="text-sm font-semibold text-text-primary">Sync Filters</h3>
+              </div>
+              {showAdvancedFilters ? (
+                <ChevronUp className="w-4 h-4 text-text-tertiary" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-text-tertiary" />
+              )}
+            </button>
+
+            {/* Quick Summary */}
+            {!showAdvancedFilters && (
+              <div className="text-sm text-text-secondary">
+                {selectedIssueTypes.size} issue type(s) • {DATE_RANGE_PRESETS.find(p => p.value === dateRangePreset)?.label}
+              </div>
+            )}
+
+            {showAdvancedFilters && (
+              <div className="space-y-4 pt-2">
+                {/* Issue Types */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-text-primary">Issue Types</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSelectAllIssueTypes}
+                        className="text-xs text-iris hover:underline"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        onClick={handleClearIssueTypes}
+                        className="text-xs text-text-tertiary hover:underline"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_ISSUE_TYPES.map((type) => (
+                      <label
+                        key={type.value}
+                        className={`
+                          inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                          cursor-pointer transition-colors border
+                          ${
+                            selectedIssueTypes.has(type.value)
+                              ? "bg-iris-dim border-iris text-iris"
+                              : "bg-surface-02 border-border text-text-secondary hover:border-text-tertiary"
+                          }
+                        `}
+                      >
+                        <Checkbox
+                          checked={selectedIssueTypes.has(type.value)}
+                          onCheckedChange={() => handleToggleIssueType(type.value)}
+                          className="w-3 h-3"
+                        />
+                        {type.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Date Range */}
+                <div>
+                  <label className="text-sm font-medium text-text-primary block mb-2">
+                    Date Range
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-text-tertiary" />
+                    <Select value={dateRangePreset} onValueChange={setDateRangePreset}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Select date range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DATE_RANGE_PRESETS.map((preset) => (
+                          <SelectItem key={preset.value} value={preset.value}>
+                            {preset.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-text-tertiary mt-1">
+                    Only sync items updated within this time range
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sync Actions */}
+          <div className="bg-surface-01 border border-border rounded-lg p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-text-primary">Sync Actions</h3>
 
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-text-primary">Automatic sync</div>
-                <div className="text-xs text-text-secondary">
-                  Sync stories every 15 minutes
-                </div>
+                <div className="text-xs text-text-secondary">Sync every 15 minutes</div>
               </div>
               <Switch checked={autoSync} onCheckedChange={setAutoSync} />
             </div>
 
-            <div className="pt-4 border-t border-border flex items-center gap-3">
+            <div className="pt-4 border-t border-border flex flex-wrap items-center gap-3">
               <Button
                 variant="secondary"
                 onClick={() => handleSync(false)}
                 isLoading={syncMutation.isPending}
-                leftIcon={syncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                leftIcon={
+                  syncMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )
+                }
               >
-                {syncMutation.isPending ? "Syncing..." : "Sync Recent"}
+                {syncMutation.isPending ? "Syncing..." : "Sync with Filters"}
               </Button>
               <Button
                 variant="primary"
                 onClick={() => handleSync(true)}
                 isLoading={syncMutation.isPending}
-                leftIcon={syncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                leftIcon={
+                  syncMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )
+                }
               >
-                {syncMutation.isPending ? "Syncing..." : "Full Sync"}
+                {syncMutation.isPending ? "Syncing..." : "Full Sync (All Time)"}
               </Button>
               {siteUrl && (
                 <Button
@@ -360,8 +627,8 @@ export default function JiraSettingsPage() {
           <div className="bg-surface-01 border border-coral-border rounded-lg p-5">
             <h3 className="text-sm font-semibold text-coral mb-2">Danger Zone</h3>
             <p className="text-xs text-text-secondary mb-4">
-              Disconnecting will stop syncing stories and remove stored JIRA
-              credentials. Your data in FORGE will not be deleted.
+              Disconnecting will stop syncing and remove stored JIRA credentials. Your data in FORGE
+              will not be deleted.
             </p>
             <Button
               variant="danger"
@@ -379,12 +646,10 @@ export default function JiraSettingsPage() {
             <div className="w-16 h-16 rounded-full bg-surface-03 flex items-center justify-center mx-auto mb-4">
               <Link2 className="w-8 h-8 text-text-tertiary" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">
-              Connect to JIRA
-            </h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Connect to JIRA</h3>
             <p className="text-sm text-text-secondary mb-6 max-w-sm mx-auto">
-              Connect your Atlassian JIRA instance to automatically sync user
-              stories and enable AI-powered quality scoring.
+              Connect your Atlassian JIRA instance to automatically sync stories, tasks, objectives,
+              and enable AI-powered quality scoring.
             </p>
             <Button onClick={handleConnect}>
               <Link2 className="w-4 h-4 mr-1" />
@@ -394,12 +659,11 @@ export default function JiraSettingsPage() {
         </div>
       )}
 
-      {/* Disconnect Confirmation */}
       <ConfirmDialog
         open={showDisconnectDialog}
         onOpenChange={setShowDisconnectDialog}
         title="Disconnect JIRA?"
-        description="This will stop syncing stories and remove your JIRA credentials. Your existing data in FORGE will not be deleted."
+        description="This will stop syncing and remove your JIRA credentials. Your existing data in FORGE will not be deleted."
         confirmLabel="Disconnect"
         variant="danger"
         onConfirm={handleDisconnect}

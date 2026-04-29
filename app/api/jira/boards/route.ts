@@ -1,0 +1,85 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getJiraClientForWorkspace } from "@/lib/jira/auth";
+
+// Get JIRA boards for a project
+export async function GET(req: NextRequest) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const adminClient = createSupabaseAdminClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get project key from query params
+    const projectKey = req.nextUrl.searchParams.get("projectKey");
+
+    // Get user's workspace
+    let workspaceId: string | null = null;
+
+    const { data: membership } = await adminClient
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (membership?.workspace_id) {
+      workspaceId = membership.workspace_id;
+    } else {
+      const { data: userProfile } = await adminClient
+        .from("users")
+        .select("workspace_id")
+        .eq("id", user.id)
+        .single();
+
+      if (userProfile?.workspace_id) {
+        workspaceId = userProfile.workspace_id;
+      }
+    }
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: "No workspace found" },
+        { status: 400 }
+      );
+    }
+
+    // Get JIRA client
+    const client = await getJiraClientForWorkspace(workspaceId);
+    if (!client) {
+      return NextResponse.json(
+        { error: "JIRA not connected" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch boards from JIRA
+    console.log("Fetching JIRA boards for project:", projectKey || "all");
+    const boards = await client.getBoards(projectKey || undefined);
+
+    return NextResponse.json({
+      boards: boards.map((board) => ({
+        id: board.id,
+        name: board.name,
+        type: board.type,
+        projectKey: board.location?.projectKey || null,
+        projectName: board.location?.projectName || null,
+      })),
+      total: boards.length,
+    });
+  } catch (error) {
+    console.error("Failed to fetch JIRA boards:", error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch boards",
+      },
+      { status: 500 }
+    );
+  }
+}

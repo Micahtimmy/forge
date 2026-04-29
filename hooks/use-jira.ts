@@ -23,6 +23,26 @@ export interface JiraProject {
   autoScore: boolean;
 }
 
+export interface JiraBoard {
+  id: number;
+  name: string;
+  type: "scrum" | "kanban";
+  projectKey: string | null;
+  projectName: string | null;
+}
+
+export interface SyncOptions {
+  fullSync?: boolean;
+  projectKeys?: string[];
+  boardIds?: number[];
+  issueTypes?: string[];
+  dateRange?: {
+    from?: string;
+    to?: string;
+    preset?: "7d" | "30d" | "90d" | "all";
+  };
+}
+
 export function useJiraStatus() {
   return useQuery<JiraStatus>({
     queryKey: ["jira-status"],
@@ -43,11 +63,11 @@ export function useJiraSync() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (fullSync: boolean = false) => {
+    mutationFn: async (options: SyncOptions = {}) => {
       const response = await fetch("/api/jira/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullSync }),
+        body: JSON.stringify(options),
       });
 
       if (!response.ok) {
@@ -62,6 +82,25 @@ export function useJiraSync() {
       queryClient.invalidateQueries({ queryKey: ["stories"] });
       queryClient.invalidateQueries({ queryKey: ["sprints"] });
     },
+  });
+}
+
+export function useJiraBoards(projectKey?: string) {
+  return useQuery<{ boards: JiraBoard[]; total: number }>({
+    queryKey: ["jira-boards", projectKey],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (projectKey) params.set("projectKey", projectKey);
+
+      const response = await fetch(`/api/jira/boards?${params.toString()}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch boards");
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: true,
   });
 }
 
