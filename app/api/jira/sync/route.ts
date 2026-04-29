@@ -57,18 +57,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (!workspaceId) {
+      console.error("No workspace found for user:", user.id);
       return NextResponse.json(
         { error: "No workspace found" },
         { status: 400 }
       );
     }
+
+    console.log("JIRA sync: workspace found:", workspaceId);
+
     const body = await req.json().catch(() => ({}));
     const validated = syncSchema.parse(body);
+    console.log("JIRA sync: request validated:", validated);
 
     // Get project key - either from request or auto-detect from JIRA
     let projectKey = validated.projectKey;
     if (!projectKey) {
+      console.log("JIRA sync: auto-detecting project key...");
       const projectKeys = await getProjectKeysForWorkspace(workspaceId);
+      console.log("JIRA sync: detected project keys:", projectKeys);
       if (projectKeys.length === 0) {
         return NextResponse.json(
           { error: "No JIRA projects found. Please ensure your JIRA connection has access to at least one project." },
@@ -77,6 +84,8 @@ export async function POST(req: NextRequest) {
       }
       projectKey = projectKeys[0]; // Use first project
     }
+
+    console.log("JIRA sync: using project key:", projectKey);
 
     // Sync stories
     const storyResult = await syncStoriesFromJira(
@@ -109,7 +118,13 @@ export async function POST(req: NextRequest) {
       totalErrors: [...storyResult.errors, ...sprintResult.errors],
     });
   } catch (error) {
-    console.error("JIRA sync error:", error);
+    // Detailed error logging
+    console.error("JIRA sync error:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+      error: error,
+    });
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -127,10 +142,13 @@ export async function POST(req: NextRequest) {
       tags: { module: "jira", operation: "sync" },
     });
 
+    const errorMessage = error instanceof Error ? error.message : "Sync failed";
+    console.error("Returning error to client:", errorMessage);
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Sync failed",
+        error: errorMessage,
       },
       { status: 500 }
     );
