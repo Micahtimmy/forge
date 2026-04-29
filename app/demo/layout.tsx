@@ -28,6 +28,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { AIAssistant } from "@/components/ai/ai-assistant";
 import { DemoBanner } from "@/components/demo/demo-banner";
 import { PageSkeleton } from "@/components/ui/skeleton";
+import { RoleSwitcher } from "@/components/demo/role-switcher";
 
 const navItems = [
   { href: "/demo", icon: LayoutDashboard, label: "Dashboard" },
@@ -167,10 +168,11 @@ function DemoTopbar({ sidebarExpanded }: { sidebarExpanded: boolean }) {
         sidebarExpanded ? "left-[220px]" : "left-[56px]"
       )}
     >
-      {/* Left: Page Title */}
-      <div className="flex items-center gap-2">
+      {/* Left: Page Title + Role Switcher */}
+      <div className="flex items-center gap-4">
         <span className="text-sm font-medium text-text-primary">{getPageTitle()}</span>
-        <Badge variant="iris" size="sm">Demo</Badge>
+        <div className="h-4 w-px bg-border" />
+        <RoleSwitcher expanded={true} />
       </div>
 
       {/* Right: Actions */}

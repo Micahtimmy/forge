@@ -1170,3 +1170,595 @@ export const DEMO_QUALITY_GATES = [
     createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
+
+// =============================================================================
+// ENTERPRISE FEATURES - V2 Mock Data
+// =============================================================================
+
+// ML Story Slip Predictions
+export const DEMO_STORY_SLIP_PREDICTIONS = [
+  {
+    storyId: "2",
+    storyKey: "FORGE-102",
+    slipProbability: 78,
+    riskLevel: "high" as const,
+    predictedBy: "ml" as const,
+    confidence: 0.85,
+    factors: [
+      { factor: "Missing acceptance criteria", weight: 0.35, impact: "high" },
+      { factor: "No assignee", weight: 0.25, impact: "medium" },
+      { factor: "High story points (8)", weight: 0.20, impact: "medium" },
+      { factor: "Late sprint addition", weight: 0.20, impact: "medium" },
+    ],
+    recommendation: "Add detailed acceptance criteria and assign to team member immediately",
+    historicalAccuracy: 0.82,
+  },
+  {
+    storyId: "4",
+    storyKey: "FORGE-104",
+    slipProbability: 65,
+    riskLevel: "medium" as const,
+    predictedBy: "ml" as const,
+    confidence: 0.78,
+    factors: [
+      { factor: "Vague description", weight: 0.40, impact: "high" },
+      { factor: "No assignee", weight: 0.30, impact: "medium" },
+      { factor: "Template dependency", weight: 0.30, impact: "medium" },
+    ],
+    recommendation: "Clarify email triggers and template requirements before starting",
+    historicalAccuracy: 0.82,
+  },
+  {
+    storyId: "9",
+    storyKey: "FORGE-109",
+    slipProbability: 72,
+    riskLevel: "high" as const,
+    predictedBy: "ml" as const,
+    confidence: 0.80,
+    factors: [
+      { factor: "Missing acceptance criteria", weight: 0.45, impact: "high" },
+      { factor: "Unclear scope (CSV vs PDF)", weight: 0.35, impact: "high" },
+      { factor: "No assignee", weight: 0.20, impact: "medium" },
+    ],
+    recommendation: "Define export format requirements and add acceptance criteria",
+    historicalAccuracy: 0.82,
+  },
+  {
+    storyId: "11",
+    storyKey: "FORGE-111",
+    slipProbability: 58,
+    riskLevel: "medium" as const,
+    predictedBy: "ml" as const,
+    confidence: 0.75,
+    factors: [
+      { factor: "Incomplete acceptance criteria", weight: 0.50, impact: "high" },
+      { factor: "Email integration complexity", weight: 0.30, impact: "medium" },
+      { factor: "Has assignee", weight: -0.20, impact: "positive" },
+    ],
+    recommendation: "Expand acceptance criteria to cover invite expiry and edge cases",
+    historicalAccuracy: 0.82,
+  },
+];
+
+// ML Sprint Failure Prediction
+export const DEMO_SPRINT_PREDICTION = {
+  sprintId: "sprint-23",
+  sprintName: "Sprint 23",
+  failureProbability: 32,
+  riskLevel: "medium" as const,
+  predictedBy: "ml" as const,
+  confidence: 0.78,
+  factors: [
+    { factor: "4 stories with low quality scores", weight: 0.30, contribution: 12 },
+    { factor: "2 unassigned stories", weight: 0.25, contribution: 8 },
+    { factor: "Historical team velocity matches commitment", weight: -0.20, contribution: -6 },
+    { factor: "Mid-sprint (day 7 of 10)", weight: 0.15, contribution: 5 },
+    { factor: "No blockers currently", weight: -0.15, contribution: -5 },
+    { factor: "1 dependency at risk", weight: 0.20, contribution: 8 },
+  ],
+  historicalComparison: {
+    similarSprints: 12,
+    actualFailureRate: 25,
+    avgPredictedProbability: 28,
+  },
+  recommendation: "Focus on improving FORGE-102 and FORGE-109 quality scores. Assign owners to unassigned stories.",
+  projectedCompletion: {
+    optimistic: 95,
+    likely: 82,
+    pessimistic: 68,
+  },
+  alerts: [
+    { type: "warning", message: "4 stories below quality threshold" },
+    { type: "info", message: "Velocity on track based on historical data" },
+  ],
+};
+
+// Capacity Intelligence / Burnout Detection
+export const DEMO_CAPACITY_INTELLIGENCE = {
+  teamHealth: {
+    overallScore: 72,
+    trend: "stable" as const,
+    alerts: 2,
+  },
+  members: [
+    {
+      userId: "user-1",
+      name: "Adaora Okonkwo",
+      role: "Scrum Master",
+      allocation: 85,
+      capacity: 100,
+      burnoutRisk: "low" as const,
+      burnoutScore: 22,
+      workloadTrend: "stable" as const,
+      factors: {
+        hoursWorked: 42,
+        avgHoursLast4Weeks: 40,
+        storiesInProgress: 2,
+        meetingLoad: 12,
+        prReviewBacklog: 3,
+      },
+      recommendation: null,
+    },
+    {
+      userId: "user-2",
+      name: "Chidi Eze",
+      role: "Product Manager",
+      allocation: 110,
+      capacity: 100,
+      burnoutRisk: "medium" as const,
+      burnoutScore: 58,
+      workloadTrend: "increasing" as const,
+      factors: {
+        hoursWorked: 48,
+        avgHoursLast4Weeks: 44,
+        storiesInProgress: 1,
+        meetingLoad: 18,
+        prReviewBacklog: 0,
+      },
+      recommendation: "Consider delegating some stakeholder meetings or reducing context switching",
+    },
+    {
+      userId: "user-3",
+      name: "Ngozi Obi",
+      role: "Senior Engineer",
+      allocation: 125,
+      capacity: 100,
+      burnoutRisk: "high" as const,
+      burnoutScore: 78,
+      workloadTrend: "increasing" as const,
+      factors: {
+        hoursWorked: 52,
+        avgHoursLast4Weeks: 48,
+        storiesInProgress: 4,
+        meetingLoad: 8,
+        prReviewBacklog: 7,
+      },
+      recommendation: "Immediate attention needed. Redistribute 2 stories and clear PR review backlog",
+    },
+    {
+      userId: "user-4",
+      name: "Emeka Nwosu",
+      role: "Engineer",
+      allocation: 55,
+      capacity: 100,
+      burnoutRisk: "low" as const,
+      burnoutScore: 15,
+      workloadTrend: "decreasing" as const,
+      factors: {
+        hoursWorked: 35,
+        avgHoursLast4Weeks: 38,
+        storiesInProgress: 1,
+        meetingLoad: 6,
+        prReviewBacklog: 2,
+      },
+      recommendation: "Has capacity for additional work. Consider pairing with Ngozi on complex stories",
+    },
+  ],
+  teamAlerts: [
+    {
+      id: "alert-1",
+      type: "burnout_risk" as const,
+      severity: "high" as const,
+      title: "High burnout risk detected",
+      description: "Ngozi Obi showing signs of overload with 125% allocation",
+      affectedMembers: ["user-3"],
+      suggestedAction: "Redistribute workload or defer non-critical items",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "alert-2",
+      type: "unbalanced_workload" as const,
+      severity: "medium" as const,
+      title: "Workload imbalance detected",
+      description: "Team workload ranges from 55% to 125% - consider rebalancing",
+      affectedMembers: ["user-3", "user-4"],
+      suggestedAction: "Move 1-2 stories from Ngozi to Emeka",
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ],
+};
+
+// Executive Analytics Mock Data
+export const DEMO_EXECUTIVE_SUMMARY = {
+  totalWorkspaces: 4,
+  totalStories: 156,
+  totalSprints: 23,
+  averageQualityScore: 71,
+  qualityTrend: "improving" as const,
+  atRiskSprints: 1,
+  completedPoints: 342,
+  plannedPoints: 420,
+  velocityTrend: "stable" as const,
+  teamUtilization: 81,
+  period: {
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    end: new Date().toISOString(),
+  },
+};
+
+export const DEMO_WORKSPACE_COMPARISON = [
+  {
+    workspaceId: "ws-1",
+    workspaceName: "Platform Team",
+    metrics: {
+      avgQualityScore: 78,
+      qualityTrend: 8,
+      sprintSuccessRate: 92,
+      velocity: 28,
+      velocityTrend: 3,
+      storyCount: 45,
+      activeSprintCount: 1,
+      teamSize: 5,
+    },
+    ranking: { quality: 1, velocity: 2, overall: 1 },
+  },
+  {
+    workspaceId: "ws-2",
+    workspaceName: "Integrations Team",
+    metrics: {
+      avgQualityScore: 72,
+      qualityTrend: 5,
+      sprintSuccessRate: 88,
+      velocity: 32,
+      velocityTrend: 5,
+      storyCount: 38,
+      activeSprintCount: 1,
+      teamSize: 4,
+    },
+    ranking: { quality: 2, velocity: 1, overall: 2 },
+  },
+  {
+    workspaceId: "ws-3",
+    workspaceName: "Analytics Team",
+    metrics: {
+      avgQualityScore: 68,
+      qualityTrend: 12,
+      sprintSuccessRate: 80,
+      velocity: 22,
+      velocityTrend: -2,
+      storyCount: 42,
+      activeSprintCount: 1,
+      teamSize: 4,
+    },
+    ranking: { quality: 3, velocity: 3, overall: 3 },
+  },
+  {
+    workspaceId: "ws-4",
+    workspaceName: "Mobile Team",
+    metrics: {
+      avgQualityScore: 65,
+      qualityTrend: 2,
+      sprintSuccessRate: 75,
+      velocity: 18,
+      velocityTrend: -5,
+      storyCount: 31,
+      activeSprintCount: 1,
+      teamSize: 3,
+    },
+    ranking: { quality: 4, velocity: 4, overall: 4 },
+  },
+];
+
+export const DEMO_VELOCITY_FORECAST = {
+  periods: [
+    { period: "S19", actual: 26, predicted: 26, confidenceInterval: { low: 26, high: 26 } },
+    { period: "S20", actual: 28, predicted: 27, confidenceInterval: { low: 27, high: 27 } },
+    { period: "S21", actual: 28, predicted: 28, confidenceInterval: { low: 28, high: 28 } },
+    { period: "S22", actual: 30, predicted: 29, confidenceInterval: { low: 29, high: 29 } },
+    { period: "S23", actual: 24, predicted: 30, confidenceInterval: { low: 30, high: 30 } },
+    { period: "S24", predicted: 28, confidenceInterval: { low: 24, high: 32 } },
+    { period: "S25", predicted: 29, confidenceInterval: { low: 23, high: 35 } },
+    { period: "S26", predicted: 30, confidenceInterval: { low: 22, high: 38 } },
+  ],
+  trend: "stable" as const,
+  confidence: 0.78,
+};
+
+export const DEMO_RISK_AGGREGATION = {
+  totalRisks: 8,
+  bySeverity: { critical: 1, high: 2, medium: 3, low: 2 },
+  byType: {
+    story_slip: 4,
+    sprint_failure: 1,
+    dependency_blocked: 2,
+    capacity_overload: 1,
+    quality_degradation: 0,
+  },
+  topRisks: [
+    {
+      id: "risk-1",
+      workspaceId: "ws-1",
+      workspaceName: "Platform Team",
+      title: "Ngozi showing burnout risk",
+      severity: "critical" as const,
+      probability: 78,
+      impact: "Team velocity could drop 30%",
+    },
+    {
+      id: "risk-2",
+      workspaceId: "ws-4",
+      workspaceName: "Mobile Team",
+      title: "Mobile payments blocked by gateway",
+      severity: "high" as const,
+      probability: 65,
+      impact: "Q2 mobile launch at risk",
+    },
+    {
+      id: "risk-3",
+      workspaceId: "ws-2",
+      workspaceName: "Integrations Team",
+      title: "Slack API rate limits",
+      severity: "high" as const,
+      probability: 55,
+      impact: "Real-time sync may degrade",
+    },
+  ],
+  riskTrend: "stable" as const,
+};
+
+// Multi-JIRA Instance Mock Data
+export const DEMO_JIRA_INSTANCES = [
+  {
+    id: "jira-1",
+    workspaceId: "demo-ws",
+    name: "FORGE Production",
+    cloudId: "abc123",
+    siteUrl: "https://forge-team.atlassian.net",
+    status: "connected" as const,
+    lastSyncAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    syncStatus: "success" as const,
+    storiesCount: 156,
+    sprintsCount: 23,
+    projectMappings: [
+      { jiraProjectKey: "FORGE", localTeamId: "team-1", enabled: true },
+      { jiraProjectKey: "OPS", localTeamId: "team-2", enabled: true },
+    ],
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "jira-2",
+    workspaceId: "demo-ws",
+    name: "Client Portal",
+    cloudId: "def456",
+    siteUrl: "https://client-portal.atlassian.net",
+    status: "connected" as const,
+    lastSyncAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    syncStatus: "success" as const,
+    storiesCount: 89,
+    sprintsCount: 12,
+    projectMappings: [
+      { jiraProjectKey: "CP", localTeamId: "team-3", enabled: true },
+    ],
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Notification Integration Status
+export const DEMO_NOTIFICATION_INTEGRATIONS = {
+  slack: {
+    connected: true,
+    teamName: "FORGE Team",
+    defaultChannel: "#forge-alerts",
+    installedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+    notificationsSent: 234,
+  },
+  teams: {
+    connected: false,
+    teamName: null,
+    defaultChannel: null,
+    installedAt: null,
+    notificationsSent: 0,
+  },
+  email: {
+    connected: true,
+    provider: "Resend",
+    fromAddress: "notifications@forge.dev",
+    notificationsSent: 567,
+  },
+};
+
+// Sprint Command Center Data
+export const DEMO_SPRINT_COMMAND_CENTER = {
+  sprintId: "sprint-23",
+  sprintName: "Sprint 23",
+  healthStatus: "atRisk" as const,
+  metrics: {
+    totalStories: 12,
+    completedStories: 4,
+    inProgressStories: 5,
+    blockedStories: 0,
+    totalPoints: 32,
+    completedPoints: 14,
+    averageScore: 71,
+    atRiskCount: 4,
+    daysRemaining: 3,
+    velocity: 28,
+    predictedCompletion: 78,
+  },
+  alerts: [
+    {
+      id: "alert-1",
+      type: "risk" as const,
+      title: "4 Stories Below Quality Threshold",
+      description: "FORGE-102, FORGE-104, FORGE-109, FORGE-111 have scores below 60",
+      storyKeys: ["FORGE-102", "FORGE-104", "FORGE-109", "FORGE-111"],
+    },
+    {
+      id: "alert-2",
+      type: "warning" as const,
+      title: "Sprint Completion At Risk",
+      description: "ML predicts 78% completion based on current velocity",
+    },
+    {
+      id: "alert-3",
+      type: "info" as const,
+      title: "Team Capacity Imbalance",
+      description: "Ngozi at 125% capacity, Emeka at 55%",
+    },
+  ],
+};
+
+// Active Risks for Risk Review Panel
+export const DEMO_ACTIVE_RISKS = [
+  {
+    id: "risk-1",
+    type: "capacity_overload" as const,
+    severity: "critical" as const,
+    probability: 78,
+    title: "Senior engineer showing burnout indicators",
+    description: "Ngozi has been working 52+ hours/week for 4 consecutive weeks with increasing PR backlog",
+    impactedItems: [
+      { type: "team" as const, id: "team-1", name: "Platform Team" },
+    ],
+    mitigations: [
+      "Redistribute 2 stories to Emeka",
+      "Cancel non-essential meetings this week",
+      "Bring in temporary contractor support",
+    ],
+    predictedBy: "ml" as const,
+    confidence: 0.85,
+    detectedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    acknowledgedAt: null,
+    resolvedAt: null,
+  },
+  {
+    id: "risk-2",
+    type: "story_slip" as const,
+    severity: "high" as const,
+    probability: 78,
+    title: "FORGE-102 likely to slip",
+    description: "Payment integration story missing acceptance criteria and no assignee",
+    impactedItems: [
+      { type: "story" as const, id: "2", name: "FORGE-102" },
+      { type: "sprint" as const, id: "sprint-23", name: "Sprint 23" },
+    ],
+    mitigations: [
+      "Add detailed acceptance criteria immediately",
+      "Assign senior engineer familiar with Paystack",
+      "Consider splitting into smaller stories",
+    ],
+    predictedBy: "ml" as const,
+    confidence: 0.85,
+    detectedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    acknowledgedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: null,
+  },
+  {
+    id: "risk-3",
+    type: "dependency_blocked" as const,
+    severity: "high" as const,
+    probability: 65,
+    title: "Mobile payments blocked by gateway integration",
+    description: "Mobile App MVP feature depends on Payment Gateway which is at risk of slipping",
+    impactedItems: [
+      { type: "feature" as const, id: "f-4", name: "Mobile App MVP" },
+      { type: "feature" as const, id: "f-1", name: "Payment Gateway" },
+    ],
+    mitigations: [
+      "Prioritize payment gateway completion",
+      "Consider mock payment flow for mobile testing",
+      "Communicate risk to stakeholders",
+    ],
+    predictedBy: "rule" as const,
+    confidence: 0.90,
+    detectedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    acknowledgedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: null,
+  },
+  {
+    id: "risk-4",
+    type: "sprint_failure" as const,
+    severity: "medium" as const,
+    probability: 32,
+    title: "Sprint 23 completion at risk",
+    description: "Current trajectory suggests 78% completion vs 100% commitment",
+    impactedItems: [
+      { type: "sprint" as const, id: "sprint-23", name: "Sprint 23" },
+    ],
+    mitigations: [
+      "Focus on completing in-progress stories before starting new ones",
+      "Consider de-scoping lowest priority items",
+      "Address quality issues blocking velocity",
+    ],
+    predictedBy: "ml" as const,
+    confidence: 0.78,
+    detectedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    acknowledgedAt: null,
+    resolvedAt: null,
+  },
+  {
+    id: "risk-5",
+    type: "story_slip" as const,
+    severity: "medium" as const,
+    probability: 58,
+    title: "FORGE-111 needs clarification",
+    description: "Team invitation flow has incomplete acceptance criteria",
+    impactedItems: [
+      { type: "story" as const, id: "11", name: "FORGE-111" },
+    ],
+    mitigations: [
+      "Schedule quick refinement session",
+      "Document invite expiry and edge cases",
+    ],
+    predictedBy: "ml" as const,
+    confidence: 0.75,
+    detectedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    acknowledgedAt: null,
+    resolvedAt: null,
+  },
+];
+
+// Story Insights for V2 Cards
+export const DEMO_STORY_INSIGHTS = DEMO_STORIES.slice(0, 6).map((story, index) => {
+  const slipPrediction = DEMO_STORY_SLIP_PREDICTIONS.find(p => p.storyId === story.id);
+  return {
+    storyId: story.id,
+    storyKey: story.jiraKey,
+    summary: story.title,
+    score: story.score?.totalScore ?? 0,
+    riskLevel: slipPrediction?.riskLevel ?? (story.score?.totalScore ?? 0) >= 70 ? "low" : (story.score?.totalScore ?? 0) >= 50 ? "medium" : "high",
+    slipProbability: slipPrediction?.slipProbability ?? (100 - (story.score?.totalScore ?? 50)),
+    dimensions: [
+      { name: "completeness", score: story.score?.completeness ?? 0, maxScore: 25 },
+      { name: "clarity", score: story.score?.clarity ?? 0, maxScore: 25 },
+      { name: "estimability", score: story.score?.estimability ?? 0, maxScore: 20 },
+      { name: "traceability", score: story.score?.traceability ?? 0, maxScore: 15 },
+      { name: "testability", score: story.score?.testability ?? 0, maxScore: 15 },
+    ],
+    suggestions: story.score?.aiSuggestions?.map(s => ({
+      type: s.type === "acceptance_criteria" ? "critical" : "improvement",
+      message: s.improved.substring(0, 100) + "...",
+      action: `Improve ${s.type}`,
+    })) ?? [],
+    predictedBy: "gemini" as const,
+    confidence: 0.85 + (Math.random() * 0.1),
+    updatedAt: story.score?.scoredAt ?? new Date().toISOString(),
+  };
+});
+
+// Helper to get sprint health status
+export function getSprintHealthStatus(metrics: typeof DEMO_SPRINT_COMMAND_CENTER.metrics): "healthy" | "atRisk" | "critical" {
+  if (metrics.atRiskCount >= 5 || metrics.predictedCompletion < 60) return "critical";
+  if (metrics.atRiskCount >= 3 || metrics.predictedCompletion < 80) return "atRisk";
+  return "healthy";
+}

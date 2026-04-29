@@ -192,3 +192,151 @@ export function useCreateNotificationRule() {
     },
   });
 }
+
+// ============================================
+// INTEGRATION STATUS (Slack, Teams)
+// ============================================
+
+export interface IntegrationStatus {
+  slack: {
+    connected: boolean;
+    teamName?: string;
+    defaultChannel?: string;
+    installedAt?: string;
+  };
+  teams: {
+    connected: boolean;
+    teamName?: string;
+    defaultChannel?: string;
+    installedAt?: string;
+  };
+}
+
+export function useIntegrationStatus() {
+  return useQuery<IntegrationStatus>({
+    queryKey: ["integration-status"],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications/status");
+      if (!res.ok) {
+        throw new Error("Failed to fetch integration status");
+      }
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useConnectSlack() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/notifications/slack/auth");
+      if (!res.ok) {
+        throw new Error("Failed to initiate Slack auth");
+      }
+      const { url } = await res.json();
+      window.location.href = url;
+    },
+  });
+}
+
+export function useDisconnectSlack() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/notifications/slack/disconnect", {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to disconnect Slack");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integration-status"] });
+    },
+  });
+}
+
+export function useConnectTeams() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/notifications/teams/auth");
+      if (!res.ok) {
+        throw new Error("Failed to initiate Teams auth");
+      }
+      const { url } = await res.json();
+      window.location.href = url;
+    },
+  });
+}
+
+export function useDisconnectTeams() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/notifications/teams/disconnect", {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to disconnect Teams");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integration-status"] });
+    },
+  });
+}
+
+export function useSendTestNotification() {
+  return useMutation({
+    mutationFn: async (channel: "slack" | "teams" | "email") => {
+      const res = await fetch("/api/notifications/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to send test notification");
+      }
+
+      return res.json();
+    },
+  });
+}
+
+export function useNotificationLogs(options?: { limit?: number; category?: string }) {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.category) params.set("category", options.category);
+
+  return useQuery({
+    queryKey: ["notification-logs", options],
+    queryFn: async () => {
+      const url = params.toString()
+        ? `/api/notifications/logs?${params.toString()}`
+        : "/api/notifications/logs";
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error("Failed to fetch notification logs");
+      }
+
+      return res.json() as Promise<{
+        logs: Array<{
+          id: string;
+          category: string;
+          priority: string;
+          title: string;
+          channelsAttempted: string[];
+          channelsSucceeded: string[];
+          createdAt: string;
+        }>;
+        total: number;
+      }>;
+    },
+    staleTime: 30 * 1000,
+  });
+}

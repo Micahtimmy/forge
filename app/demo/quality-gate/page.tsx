@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -11,6 +12,8 @@ import {
   Zap,
   RefreshCw,
   ArrowUpRight,
+  AlertTriangle,
+  Brain,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
@@ -34,16 +37,21 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown";
 import { cn } from "@/lib/utils";
-import { staggerContainer } from "@/lib/motion/variants";
+import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import {
   DEMO_STORIES,
   DEMO_SPRINTS,
+  DEMO_STORY_INSIGHTS,
+  DEMO_STORY_SLIP_PREDICTIONS,
+  DEMO_SPRINT_PREDICTION,
   calculateSprintHealth,
   getScoreDistribution,
 } from "@/lib/demo/mock-data";
+import { StoryInsightCard } from "@/components/system/intelligence/StoryInsightCard";
+import { SmartEmptyState } from "@/components/system/feedback/SmartEmptyState";
 
 type ScoreFilter = "all" | "excellent" | "good" | "fair" | "poor";
-type ViewMode = "grid" | "list";
+type ViewMode = "grid" | "list" | "insights";
 
 function StoryCard({ story, index }: { story: (typeof DEMO_STORIES)[0]; index: number }) {
   const score = story.score?.totalScore ?? 0;
@@ -177,12 +185,15 @@ function SprintHealthPanel({ stories }: { stories: typeof DEMO_STORIES }) {
 
 export default function DemoQualityGatePage() {
   const toast = useToastActions();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("insights");
   const [selectedSprint, setSelectedSprint] = useState(DEMO_SPRINTS[0].id);
   const [isScoring, setIsScoring] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const storiesAtRisk = DEMO_STORY_SLIP_PREDICTIONS.filter(p => p.slipProbability >= 50).length;
 
   const filteredStories = DEMO_STORIES.filter((story) => {
     if (searchQuery && !story.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -219,9 +230,24 @@ export default function DemoQualityGatePage() {
     <div>
       <PageHeader
         title="Quality Gate"
-        description="AI-powered story quality analysis for your sprint backlog"
+        description="AI-powered story quality analysis with ML slip prediction"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* ML Prediction Badge */}
+            {storiesAtRisk > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-coral/10 border border-coral/20">
+                <AlertTriangle className="w-4 h-4 text-coral" />
+                <span className="text-sm font-medium text-coral">
+                  {storiesAtRisk} slip {storiesAtRisk === 1 ? 'risk' : 'risks'}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-iris/10 border border-iris/20">
+              <Brain className="w-4 h-4 text-iris" />
+              <span className="text-sm font-medium text-iris">
+                {DEMO_SPRINT_PREDICTION.projectedCompletion.likely}% predicted
+              </span>
+            </div>
             <Button
               variant="secondary"
               size="sm"
@@ -315,6 +341,18 @@ export default function DemoQualityGatePage() {
 
             <div className="flex items-center border border-border rounded-md">
               <button
+                onClick={() => setViewMode("insights")}
+                className={cn(
+                  "p-2 transition-colors",
+                  viewMode === "insights"
+                    ? "bg-iris/20 text-iris"
+                    : "text-text-tertiary hover:text-text-secondary"
+                )}
+                title="AI Insights View"
+              >
+                <Brain className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
                   "p-2 transition-colors",
@@ -322,6 +360,7 @@ export default function DemoQualityGatePage() {
                     ? "bg-surface-03 text-text-primary"
                     : "text-text-tertiary hover:text-text-secondary"
                 )}
+                title="Grid View"
               >
                 <Grid3X3 className="w-4 h-4" />
               </button>
@@ -333,6 +372,7 @@ export default function DemoQualityGatePage() {
                     ? "bg-surface-03 text-text-primary"
                     : "text-text-tertiary hover:text-text-secondary"
                 )}
+                title="List View"
               >
                 <List className="w-4 h-4" />
               </button>
@@ -342,35 +382,82 @@ export default function DemoQualityGatePage() {
           {/* Results count */}
           <div className="text-sm text-text-tertiary mb-3">
             Showing {filteredStories.length} of {DEMO_STORIES.length} stories
+            {viewMode === "insights" && (
+              <span className="ml-2 px-2 py-0.5 rounded bg-iris/10 text-iris text-xs font-medium">
+                AI Insights Mode
+              </span>
+            )}
           </div>
 
-          {/* Story List */}
-          <motion.div
-            className="space-y-2"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            {filteredStories.map((story, index) => (
-              <StoryCard key={story.id} story={story} index={index} />
-            ))}
-          </motion.div>
+          {/* Insights View (V2 Cards) */}
+          {viewMode === "insights" && (
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              {filteredStories.map((story) => {
+                const insight = DEMO_STORY_INSIGHTS.find(i => i.storyId === story.id);
+                const slipPrediction = DEMO_STORY_SLIP_PREDICTIONS.find(p => p.storyId === story.id);
+
+                const storyInsight = insight || {
+                  storyId: story.id,
+                  storyKey: story.jiraKey,
+                  summary: story.title,
+                  score: story.score?.totalScore ?? 0,
+                  riskLevel: (story.score?.totalScore ?? 0) >= 70 ? "low" : (story.score?.totalScore ?? 0) >= 50 ? "medium" : "high",
+                  slipProbability: slipPrediction?.slipProbability ?? (100 - (story.score?.totalScore ?? 50)),
+                  dimensions: [
+                    { name: "completeness", score: story.score?.completeness ?? 0, maxScore: 25 },
+                    { name: "clarity", score: story.score?.clarity ?? 0, maxScore: 25 },
+                    { name: "estimability", score: story.score?.estimability ?? 0, maxScore: 20 },
+                  ],
+                  suggestions: story.score?.aiSuggestions?.map(s => ({
+                    type: s.type === "acceptance_criteria" ? "critical" : "improvement",
+                    message: s.improved.substring(0, 100) + "...",
+                    action: `Improve ${s.type}`,
+                  })) ?? [],
+                  predictedBy: "gemini" as const,
+                  confidence: 0.85,
+                  updatedAt: story.score?.scoredAt ?? new Date().toISOString(),
+                };
+
+                return (
+                  <motion.div key={story.id} variants={staggerItem}>
+                    <StoryInsightCard
+                      insight={storyInsight as any}
+                      onViewDetails={() => router.push(`/demo/quality-gate/story/${story.id}`)}
+                      onRescore={() => toast.success("Re-scoring", `${story.jiraKey} is being analyzed...`)}
+                    />
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
+
+          {/* List/Grid View */}
+          {(viewMode === "list" || viewMode === "grid") && (
+            <motion.div
+              className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-2"}
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              {filteredStories.map((story, index) => (
+                <StoryCard key={story.id} story={story} index={index} />
+              ))}
+            </motion.div>
+          )}
 
           {filteredStories.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-text-secondary">No stories match your filters</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2"
-                onClick={() => {
-                  setSearchQuery("");
-                  setScoreFilter("all");
-                }}
-              >
-                Clear filters
-              </Button>
-            </div>
+            <SmartEmptyState
+              context="stories"
+              onSecondaryAction={() => {
+                setSearchQuery("");
+                setScoreFilter("all");
+              }}
+            />
           )}
         </div>
       </div>

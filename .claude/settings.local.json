@@ -83,7 +83,11 @@
       "Bash(npm list *)",
       "Bash(npx inngest-cli@latest dev --help)",
       "Bash(mkdir -p docs/specs)",
-      "Bash(echo \"# FORGE Decision Intelligence System - Architecture Spec\")"
+      "Bash(echo \"# FORGE Decision Intelligence System - Architecture Spec\")",
+      "Bash(ping github.com -n 2)",
+      "Bash(netsh winhttp *)",
+      "WebFetch(domain:forge-eight-sandy.vercel.app)",
+      "Bash(git rm *)"
     ]
   }
 }
