@@ -63,6 +63,11 @@ export interface JiraSprint {
 export interface JiraIssueFields {
   summary: string;
   description?: string | JiraDocument;
+  project?: {
+    id: string;
+    key: string;
+    name: string;
+  };
   status: {
     id: string;
     name: string;
