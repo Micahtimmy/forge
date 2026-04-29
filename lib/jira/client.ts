@@ -223,17 +223,21 @@ export class JiraClient {
       expand = [],
     } = options;
 
-    // Use the new /search/jql endpoint (the old /search was deprecated)
-    // See: https://developer.atlassian.com/changelog/#CHANGE-2046
-    return this.request<JiraSearchResponse>(`${this.baseUrl}/search/jql`, {
-      method: "POST",
-      body: JSON.stringify({
-        jql,
-        startAt,
-        maxResults,
-        fields,
-        expand,
-      }),
+    // Use the new /search/jql endpoint with GET method and query parameters
+    // The old POST /search was deprecated - see: https://developer.atlassian.com/changelog/#CHANGE-2046
+    const params = new URLSearchParams({
+      jql,
+      startAt: String(startAt),
+      maxResults: String(maxResults),
+      fields: fields.join(","),
+    });
+
+    if (expand.length > 0) {
+      params.set("expand", expand.join(","));
+    }
+
+    return this.request<JiraSearchResponse>(`${this.baseUrl}/search/jql?${params.toString()}`, {
+      method: "GET",
     });
   }
 
