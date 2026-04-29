@@ -420,16 +420,41 @@ export async function getProjectKeysForWorkspace(
       return [];
     }
 
+    // First try to get projects via project endpoints
     console.log("Fetching projects from JIRA API...");
-    const projects = await client.getProjects();
-    console.log("Found JIRA projects:", projects.map(p => p.key));
-    return projects.map((p) => p.key);
+    try {
+      const projects = await client.getProjects();
+      if (projects.length > 0) {
+        console.log("Found JIRA projects:", projects.map(p => p.key));
+        return projects.map((p) => p.key);
+      }
+    } catch (projectError) {
+      console.error("Project endpoint failed, trying JQL search:", projectError);
+    }
+
+    // Fallback: Use JQL search to discover projects from recent issues
+    console.log("Trying JQL search to discover projects...");
+    const searchResult = await client.searchIssues(
+      "ORDER BY updated DESC",
+      { maxResults: 100, fields: ["project"] }
+    );
+
+    const projectKeys = new Set<string>();
+    for (const issue of searchResult.issues) {
+      if (issue.fields.project?.key) {
+        projectKeys.add(issue.fields.project.key);
+      }
+    }
+
+    if (projectKeys.size > 0) {
+      console.log("Discovered projects via JQL:", Array.from(projectKeys));
+      return Array.from(projectKeys);
+    }
+
+    console.log("No projects found via any method");
+    return [];
   } catch (error) {
     console.error("Failed to fetch JIRA projects:", error);
-    // Re-throw to give a more helpful error message
-    if (error instanceof JiraApiError) {
-      throw new Error(`JIRA API Error: ${error.message} (Status: ${error.statusCode})`);
-    }
-    throw error;
+    return [];
   }
 }

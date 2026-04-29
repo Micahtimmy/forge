@@ -149,21 +149,30 @@ export class JiraClient {
 
   // Projects
   async getProjects(): Promise<JiraProject[]> {
-    try {
-      // Try the newer search endpoint first
-      const response = await this.request<{
-        values: JiraProject[];
-        isLast: boolean;
-      }>(`${this.baseUrl}/project/search?maxResults=100`);
-      return response.values;
-    } catch (error) {
-      // Fall back to the older endpoint if search fails (410 Gone or other errors)
-      if (error instanceof JiraApiError && (error.statusCode === 410 || error.statusCode === 404)) {
-        const projects = await this.request<JiraProject[]>(`${this.baseUrl}/project`);
+    // Try multiple endpoints in order of preference
+    const endpoints = [
+      { url: `${this.baseUrl}/project/search?maxResults=100`, extract: (r: { values: JiraProject[] }) => r.values },
+      { url: `${this.baseUrl}/project`, extract: (r: JiraProject[]) => r },
+      { url: `${this.baseUrl}/project/recent?maxResults=50`, extract: (r: JiraProject[]) => r },
+    ];
+
+    let lastError: Error | null = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying JIRA endpoint: ${endpoint.url}`);
+        const response = await this.request<JiraProject[] | { values: JiraProject[] }>(endpoint.url);
+        const projects = endpoint.extract(response as never);
+        console.log(`Success! Found ${projects.length} projects`);
         return projects;
+      } catch (error) {
+        console.error(`Failed endpoint ${endpoint.url}:`, error instanceof Error ? error.message : error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        // Continue to next endpoint
       }
-      throw error;
     }
+
+    throw lastError || new Error("All project endpoints failed");
   }
 
   async getProject(projectKeyOrId: string): Promise<JiraProject> {
