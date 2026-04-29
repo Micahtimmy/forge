@@ -59,6 +59,17 @@ export async function completeOnboarding(data: unknown) {
     // Use admin client to bypass RLS during onboarding
     const adminClient = createSupabaseAdminClient();
 
+    // Verify admin client is working
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Missing SUPABASE_SERVICE_ROLE_KEY");
+      return {
+        success: false,
+        error: "Server configuration error. Please contact support.",
+      };
+    }
+
+    console.log("Starting onboarding for user:", user.id, "workspace:", workspaceName);
+
     // Step 1: Create workspace
     const { data: workspace, error: workspaceError } = await adminClient
       .from("workspaces")
@@ -78,6 +89,8 @@ export async function completeOnboarding(data: unknown) {
         error: `Failed to create workspace: ${workspaceError.message}`,
       };
     }
+
+    console.log("Workspace created:", workspace.id);
 
     // Step 2: Create user profile
     const { error: profileError } = await adminClient
@@ -101,6 +114,8 @@ export async function completeOnboarding(data: unknown) {
       };
     }
 
+    console.log("User profile created for:", user.id);
+
     // Step 3: Create workspace membership (required for JIRA auth and other features)
     const { error: membershipError } = await adminClient
       .from("workspace_members")
@@ -123,13 +138,16 @@ export async function completeOnboarding(data: unknown) {
       };
     }
 
+    console.log("Workspace membership created. Onboarding complete!");
+
     revalidatePath("/");
 
     return {
       success: true,
       workspaceId: workspace.id,
     };
-  } catch {
+  } catch (err) {
+    console.error("Onboarding unexpected error:", err);
     return {
       success: false,
       error: "An unexpected error occurred. Please try again.",

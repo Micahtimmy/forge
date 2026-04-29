@@ -2,17 +2,20 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Building2, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, Building2, Loader2, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { fadeIn, slideUp } from "@/lib/motion/variants";
 import { signUp, signInWithGoogle, signInWithGitHub } from "@/lib/auth/actions";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,6 +29,9 @@ export default function SignupPage() {
       if (result.success) {
         if (result.redirectTo === "/signup/verify") {
           setEmailSent(true);
+        } else if (result.redirectTo) {
+          setIsRedirecting(true);
+          router.push(result.redirectTo);
         }
       } else {
         setError(result.error || "Sign up failed");
@@ -50,6 +56,33 @@ export default function SignupPage() {
       }
     });
   };
+
+  // Show redirecting screen
+  if (isRedirecting) {
+    return (
+      <motion.div
+        variants={slideUp}
+        initial="hidden"
+        animate="visible"
+        className="text-center space-y-6"
+      >
+        <div className="w-16 h-16 mx-auto rounded-full bg-iris-dim flex items-center justify-center">
+          <Sparkles className="w-8 h-8 text-iris" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-text-primary">
+            Account created!
+          </h1>
+          <p className="text-sm text-text-secondary mt-2 max-w-sm mx-auto">
+            Setting up your workspace...
+          </p>
+        </div>
+        <div className="flex justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-iris" />
+        </div>
+      </motion.div>
+    );
+  }
 
   // Show email verification sent screen
   if (emailSent) {
