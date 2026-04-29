@@ -35,6 +35,8 @@ import { SkeletonStoryCard } from "@/components/ui/skeleton";
 import { EmptyStoriesState } from "@/components/ui/empty-state";
 import { useQualityGateStore } from "@/stores/quality-gate-store";
 import { useStories, useSprints, useStoryStats } from "@/hooks/use-stories";
+import { useJiraStatus } from "@/hooks/use-jira";
+import { JiraConnectionPrompt } from "@/components/shared/jira-connection-prompt";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 
@@ -53,8 +55,10 @@ export default function QualityGatePage() {
     setIsScoring,
   } = useQualityGateStore();
 
+  const { data: jiraStatus } = useJiraStatus();
   const { data: sprintsData, isLoading: sprintsLoading } = useSprints();
   const sprints = sprintsData?.sprints || [];
+  const isJiraConnected = jiraStatus?.connected ?? false;
 
   const effectiveSprintId = selectedSprintId || sprints.find(s => s.isActive)?.jiraSprintId?.toString();
 
@@ -179,6 +183,8 @@ export default function QualityGatePage() {
           </div>
         }
       />
+
+      {!isJiraConnected && <JiraConnectionPrompt variant="banner" />}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">

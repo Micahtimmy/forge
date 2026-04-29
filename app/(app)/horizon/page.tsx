@@ -30,6 +30,8 @@ import {
 import { EmptyPIState } from "@/components/ui/empty-state";
 import { useToastActions } from "@/components/ui/toast";
 import { usePIs, useCreatePI, type PIListItem } from "@/hooks/use-pi";
+import { useJiraStatus } from "@/hooks/use-jira";
+import { JiraConnectionPrompt } from "@/components/shared/jira-connection-prompt";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import { format, addWeeks } from "date-fns";
@@ -204,6 +206,9 @@ export default function HorizonPage() {
   const [newPIName, setNewPIName] = useState("");
   const [newPIIterations, setNewPIIterations] = useState("5");
 
+  const { data: jiraStatus } = useJiraStatus();
+  const isJiraConnected = jiraStatus?.connected ?? false;
+
   const { data: pisData, isLoading, error } = usePIs();
   const createPI = useCreatePI();
 
@@ -253,6 +258,8 @@ export default function HorizonPage() {
           </Button>
         }
       />
+
+      {!isJiraConnected && <JiraConnectionPrompt variant="banner" />}
 
       {isLoading ? (
         <LoadingState />

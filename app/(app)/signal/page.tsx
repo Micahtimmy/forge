@@ -28,6 +28,8 @@ import { Tabs, TabsListUnderline, TabsTriggerUnderline, TabsContent } from "@/co
 import { EmptySignalState } from "@/components/ui/empty-state";
 import { useToastActions } from "@/components/ui/toast";
 import { useSignalUpdates, useDeleteUpdate } from "@/hooks/use-signal";
+import { useJiraStatus } from "@/hooks/use-jira";
+import { JiraConnectionPrompt } from "@/components/shared/jira-connection-prompt";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import { formatDistanceToNow } from "date-fns";
@@ -143,6 +145,9 @@ export default function SignalPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "sent" | "draft">("all");
 
+  const { data: jiraStatus } = useJiraStatus();
+  const isJiraConnected = jiraStatus?.connected ?? false;
+
   const { data: updatesData, isLoading, error } = useSignalUpdates({
     status: statusFilter === "all" ? undefined : statusFilter,
   });
@@ -190,6 +195,8 @@ export default function SignalPage() {
           </Button>
         }
       />
+
+      {!isJiraConnected && <JiraConnectionPrompt variant="banner" />}
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-6">

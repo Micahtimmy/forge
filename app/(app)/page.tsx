@@ -21,6 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useJiraStatus } from "@/hooks/use-jira";
+import { JiraConnectionPrompt } from "@/components/shared/jira-connection-prompt";
 
 function StatCard({
   icon,
@@ -162,6 +164,8 @@ function StoryListSkeleton() {
 
 export default function DashboardPage() {
   const { data, isLoading, error, refetch, isRefetching } = useDashboard();
+  const { data: jiraStatus } = useJiraStatus();
+  const isJiraConnected = jiraStatus?.connected ?? false;
 
   const hasData = data && (data.recentStories.length > 0 || data.sprintHealth > 0);
 
@@ -182,6 +186,8 @@ export default function DashboardPage() {
           </Button>
         }
       />
+
+      {!isJiraConnected && <JiraConnectionPrompt variant="banner" />}
 
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-coral-dim border border-coral-border text-coral text-sm">

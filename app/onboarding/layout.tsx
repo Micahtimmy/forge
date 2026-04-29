@@ -26,7 +26,7 @@ export default async function OnboardingLayout({
     .single();
 
   if (profile?.workspace_id) {
-    redirect("/quality-gate");
+    redirect("/");
   }
 
   return (
