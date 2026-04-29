@@ -223,7 +223,9 @@ export class JiraClient {
       expand = [],
     } = options;
 
-    return this.request<JiraSearchResponse>(`${this.baseUrl}/search`, {
+    // Use the new /search/jql endpoint (the old /search was deprecated)
+    // See: https://developer.atlassian.com/changelog/#CHANGE-2046
+    return this.request<JiraSearchResponse>(`${this.baseUrl}/search/jql`, {
       method: "POST",
       body: JSON.stringify({
         jql,
