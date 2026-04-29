@@ -56,28 +56,31 @@ export async function completeOnboarding(data: unknown) {
   const dbRole = ROLE_MAP[role] || "pm";
 
   try {
-    // Use admin client to bypass RLS during onboarding
-    const adminClient = createSupabaseAdminClient();
-
-    // Verify admin client is working
+    // Verify environment is configured
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Missing SUPABASE_SERVICE_ROLE_KEY");
       return {
         success: false,
-        error: "Server configuration error. Please contact support.",
+        error: "Missing SUPABASE_SERVICE_ROLE_KEY environment variable",
       };
     }
 
-    console.log("Starting onboarding for user:", user.id, "workspace:", workspaceName);
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      return {
+        success: false,
+        error: "Missing NEXT_PUBLIC_SUPABASE_URL environment variable",
+      };
+    }
+
+    // Use admin client to bypass RLS during onboarding
+    const adminClient = createSupabaseAdminClient();
 
     // Step 1: Create workspace
+    // Note: team_size and created_by may not exist in older schema versions
     const { data: workspace, error: workspaceError } = await adminClient
       .from("workspaces")
       .insert({
         name: workspaceName,
         slug: slug,
-        team_size: teamSize,
-        created_by: user.id,
       })
       .select("id, name")
       .single();
@@ -93,14 +96,17 @@ export async function completeOnboarding(data: unknown) {
     console.log("Workspace created:", workspace.id);
 
     // Step 2: Create user profile
+    const userName = user.user_metadata?.full_name || user.user_metadata?.name || "";
     const { error: profileError } = await adminClient
       .from("users")
       .upsert({
         id: user.id,
         email: user.email || "",
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+        full_name: userName,
+        display_name: userName,
         role: dbRole,
         workspace_id: workspace.id,
+        onboarding_completed: true,
       }, {
         onConflict: "id",
       });
