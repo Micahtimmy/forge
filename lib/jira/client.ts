@@ -108,8 +108,10 @@ export class JiraClient {
         );
       }
 
+      const errorDetail = errorMessages?.join(", ") || response.statusText;
+      console.error(`JIRA API Error [${response.status}] ${url}: ${errorDetail}`);
       throw new JiraApiError(
-        `JIRA API error: ${response.statusText}`,
+        `JIRA API error: ${errorDetail}`,
         response.status,
         errorMessages
       );
@@ -145,6 +147,15 @@ export class JiraClient {
     }
 
     return response.json();
+  }
+
+  // Verify connection by getting current user
+  async verifyConnection(): Promise<{ accountId: string; displayName: string; emailAddress?: string }> {
+    console.log(`Verifying JIRA connection with cloudId: ${this.cloudId}`);
+    console.log(`Base URL: ${this.baseUrl}`);
+    return this.request<{ accountId: string; displayName: string; emailAddress?: string }>(
+      `${this.baseUrl}/myself`
+    );
   }
 
   // Projects

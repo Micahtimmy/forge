@@ -147,8 +147,15 @@ export async function getValidJiraTokens(
     .single();
 
   if (error || !connection) {
+    console.error("No JIRA connection found for workspace:", workspaceId, error);
     return null;
   }
+
+  console.log("JIRA connection found:", {
+    cloudId: connection.cloud_id,
+    siteUrl: connection.site_url,
+    expiresAt: connection.expires_at,
+  });
 
   const expiresAt = new Date(connection.expires_at);
   const now = new Date();

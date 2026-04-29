@@ -420,6 +420,16 @@ export async function getProjectKeysForWorkspace(
       return [];
     }
 
+    // First verify the connection is working
+    console.log("Verifying JIRA connection...");
+    try {
+      const user = await client.verifyConnection();
+      console.log("JIRA connection verified for user:", user.displayName, user.emailAddress);
+    } catch (verifyError) {
+      console.error("JIRA connection verification failed:", verifyError);
+      throw new Error(`JIRA connection failed: ${verifyError instanceof Error ? verifyError.message : "Unknown error"}. Please reconnect your JIRA account.`);
+    }
+
     // First try to get projects via project endpoints
     console.log("Fetching projects from JIRA API...");
     try {
@@ -434,27 +444,32 @@ export async function getProjectKeysForWorkspace(
 
     // Fallback: Use JQL search to discover projects from recent issues
     console.log("Trying JQL search to discover projects...");
-    const searchResult = await client.searchIssues(
-      "ORDER BY updated DESC",
-      { maxResults: 100, fields: ["project"] }
-    );
+    try {
+      const searchResult = await client.searchIssues(
+        "ORDER BY updated DESC",
+        { maxResults: 100, fields: ["project"] }
+      );
 
-    const projectKeys = new Set<string>();
-    for (const issue of searchResult.issues) {
-      if (issue.fields.project?.key) {
-        projectKeys.add(issue.fields.project.key);
+      const projectKeys = new Set<string>();
+      for (const issue of searchResult.issues) {
+        if (issue.fields.project?.key) {
+          projectKeys.add(issue.fields.project.key);
+        }
       }
-    }
 
-    if (projectKeys.size > 0) {
-      console.log("Discovered projects via JQL:", Array.from(projectKeys));
-      return Array.from(projectKeys);
+      if (projectKeys.size > 0) {
+        console.log("Discovered projects via JQL:", Array.from(projectKeys));
+        return Array.from(projectKeys);
+      }
+    } catch (searchError) {
+      console.error("JQL search failed:", searchError);
     }
 
     console.log("No projects found via any method");
     return [];
   } catch (error) {
     console.error("Failed to fetch JIRA projects:", error);
-    return [];
+    // Re-throw with clearer message
+    throw error;
   }
 }
