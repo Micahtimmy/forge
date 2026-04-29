@@ -8,14 +8,15 @@ const JIRA_AUTH_URL = "https://auth.atlassian.com/authorize";
 const JIRA_TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 
 // Required scopes for FORGE functionality
+// These must match what's configured in Atlassian Developer Console
 const JIRA_SCOPES = [
   "read:jira-work",
   "read:jira-user",
   "write:jira-work",
-  "read:sprint:jira-software",
-  "read:board-scope:jira-software",
-  "read:project:jira",
-  "offline_access", // For refresh tokens
+  "manage:jira-project",
+  "manage:jira-webhook",
+  "manage:jira-configuration",
+  "offline_access",
 ].join(" ");
 
 interface TokenResponse {

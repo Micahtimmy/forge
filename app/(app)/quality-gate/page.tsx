@@ -209,9 +209,9 @@ export default function QualityGatePage() {
               </SelectTrigger>
               <SelectContent>
                 {sprints.length === 0 ? (
-                  <SelectItem value="" disabled>
+                  <div className="px-2 py-1.5 text-sm text-text-tertiary">
                     No sprints found
-                  </SelectItem>
+                  </div>
                 ) : (
                   sprints.map((sprint) => (
                     <SelectItem

@@ -49,13 +49,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    console.log("JIRA callback: exchanging code for tokens...");
+
     // Exchange code for tokens
     const tokens = await exchangeCodeForTokens(code);
+    console.log("JIRA callback: tokens received, scopes:", tokens.scope);
 
     // Get accessible resources (JIRA sites)
+    console.log("JIRA callback: fetching accessible resources...");
     const resources = await JiraClient.getAccessibleResources(
       tokens.access_token
     );
+    console.log("JIRA callback: found", resources.length, "resources");
 
     if (resources.length === 0) {
       return NextResponse.redirect(
@@ -65,9 +70,12 @@ export async function GET(req: NextRequest) {
 
     // Use first resource (in production, might show selector for multiple sites)
     const selectedResource = resources[0];
+    console.log("JIRA callback: using site", selectedResource.name, selectedResource.id);
 
     // Store tokens
+    console.log("JIRA callback: storing tokens for workspace", workspaceId);
     await storeJiraTokens(workspaceId, tokens, selectedResource);
+    console.log("JIRA callback: tokens stored successfully!");
 
     // Clear OAuth cookies
     const response = NextResponse.redirect(
@@ -79,9 +87,11 @@ export async function GET(req: NextRequest) {
     return response;
   } catch (error) {
     console.error("JIRA callback error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("JIRA callback error details:", errorMessage);
     return NextResponse.redirect(
       new URL(
-        `/settings/jira?error=token_exchange_failed&message=${encodeURIComponent(error instanceof Error ? error.message : "Unknown error")}`,
+        `/settings/jira?error=token_exchange_failed&message=${encodeURIComponent(errorMessage)}`,
         req.url
       )
     );
