@@ -70,31 +70,62 @@ export async function POST(req: NextRequest) {
     const validated = syncSchema.parse(body);
     console.log("JIRA sync: request validated:", validated);
 
-    // Get project key - either from request or auto-detect from JIRA
-    let projectKey = validated.projectKey;
-    if (!projectKey) {
-      console.log("JIRA sync: auto-detecting project key...");
-      const projectKeys = await getProjectKeysForWorkspace(workspaceId);
-      console.log("JIRA sync: detected project keys:", projectKeys);
-      if (projectKeys.length === 0) {
-        return NextResponse.json(
-          { error: "No JIRA projects found. Please ensure your JIRA connection has access to at least one project." },
-          { status: 400 }
-        );
+    // Get project keys - either from request or from selected projects in database
+    let projectKeys: string[] = [];
+
+    if (validated.projectKey) {
+      projectKeys = [validated.projectKey];
+    } else {
+      // Check for selected projects in database
+      const { data: selectedProjects } = await adminClient
+        .from("jira_selected_projects")
+        .select("project_key")
+        .eq("workspace_id", workspaceId)
+        .eq("sync_enabled", true);
+
+      if (selectedProjects && selectedProjects.length > 0) {
+        projectKeys = selectedProjects.map((p) => p.project_key);
+        console.log("JIRA sync: using selected projects:", projectKeys);
+      } else {
+        // Fall back to auto-detect
+        console.log("JIRA sync: auto-detecting project key...");
+        projectKeys = await getProjectKeysForWorkspace(workspaceId);
+        console.log("JIRA sync: detected project keys:", projectKeys);
       }
-      projectKey = projectKeys[0]; // Use first project
     }
 
-    console.log("JIRA sync: using project key:", projectKey);
+    if (projectKeys.length === 0) {
+      return NextResponse.json(
+        { error: "No JIRA projects selected. Please select at least one project to sync in Settings > JIRA." },
+        { status: 400 }
+      );
+    }
 
-    // Sync stories
-    const storyResult = await syncStoriesFromJira(
-      workspaceId,
-      projectKey,
-      {
-        fullSync: validated.fullSync,
+    console.log("JIRA sync: syncing projects:", projectKeys);
+
+    // Sync stories from all selected projects
+    let totalStoriesSynced = 0;
+    const allStoryErrors: string[] = [];
+
+    for (const projectKey of projectKeys) {
+      console.log(`JIRA sync: syncing project ${projectKey}...`);
+      try {
+        const storyResult = await syncStoriesFromJira(
+          workspaceId,
+          projectKey,
+          {
+            fullSync: validated.fullSync,
+          }
+        );
+        totalStoriesSynced += storyResult.synced;
+        allStoryErrors.push(...storyResult.errors);
+        console.log(`JIRA sync: project ${projectKey} synced ${storyResult.synced} stories`);
+      } catch (projectError) {
+        const errorMsg = `Project ${projectKey}: ${projectError instanceof Error ? projectError.message : "Unknown error"}`;
+        console.error(errorMsg);
+        allStoryErrors.push(errorMsg);
       }
-    );
+    }
 
     // Sync sprints if board ID provided
     let sprintResult = { synced: 0, errors: [] as string[] };
@@ -108,14 +139,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       stories: {
-        synced: storyResult.synced,
-        errors: storyResult.errors.length,
+        synced: totalStoriesSynced,
+        errors: allStoryErrors.length,
       },
       sprints: {
         synced: sprintResult.synced,
         errors: sprintResult.errors.length,
       },
-      totalErrors: [...storyResult.errors, ...sprintResult.errors],
+      projectsSynced: projectKeys.length,
+      totalErrors: [...allStoryErrors, ...sprintResult.errors],
     });
   } catch (error) {
     // Detailed error logging

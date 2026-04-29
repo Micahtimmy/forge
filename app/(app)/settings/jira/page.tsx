@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,6 +11,8 @@ import {
   Trash2,
   AlertCircle,
   Loader2,
+  FolderKanban,
+  Search,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -21,7 +23,16 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useToastActions } from "@/components/ui/toast";
-import { useJiraStatus, useJiraSync, useJiraDisconnect } from "@/hooks/use-jira";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  useJiraStatus,
+  useJiraSync,
+  useJiraDisconnect,
+  useJiraProjects,
+  useUpdateJiraProjects,
+  JiraProject,
+} from "@/hooks/use-jira";
 import { fadeIn } from "@/lib/motion/variants";
 
 export default function JiraSettingsPage() {
@@ -29,11 +40,27 @@ export default function JiraSettingsPage() {
   const toast = useToastActions();
 
   const { data: status, isLoading, error } = useJiraStatus();
+  const { data: projectsData, isLoading: projectsLoading } = useJiraProjects();
   const syncMutation = useJiraSync();
   const disconnectMutation = useJiraDisconnect();
+  const updateProjectsMutation = useUpdateJiraProjects();
 
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProjects, setSelectedProjects] = useState<Map<string, JiraProject>>(new Map());
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
+
+  // Initialize selected projects from API data
+  useEffect(() => {
+    if (projectsData?.projects) {
+      const selected = new Map<string, JiraProject>();
+      projectsData.projects
+        .filter((p) => p.syncEnabled)
+        .forEach((p) => selected.set(p.key, p));
+      setSelectedProjects(selected);
+    }
+  }, [projectsData]);
 
   const isConnected = status?.connected ?? false;
   const siteName = status?.siteName || "JIRA";
@@ -44,6 +71,15 @@ export default function JiraSettingsPage() {
   };
 
   const handleSync = async (fullSync: boolean = false) => {
+    // Get selected project keys
+    const projectKeys = Array.from(selectedProjects.keys());
+
+    if (projectKeys.length === 0) {
+      toast.error("No projects selected", "Please select at least one project to sync");
+      setShowProjectSelector(true);
+      return;
+    }
+
     try {
       const result = await syncMutation.mutateAsync(fullSync);
       toast.success("Sync complete", `Synced ${result.stories?.synced ?? 0} stories from JIRA`);
@@ -51,6 +87,41 @@ export default function JiraSettingsPage() {
       toast.error("Sync failed", err instanceof Error ? err.message : "Unknown error");
     }
   };
+
+  const handleToggleProject = (project: JiraProject) => {
+    setSelectedProjects((prev) => {
+      const newMap = new Map(prev);
+      if (newMap.has(project.key)) {
+        newMap.delete(project.key);
+      } else {
+        newMap.set(project.key, { ...project, syncEnabled: true });
+      }
+      return newMap;
+    });
+  };
+
+  const handleSaveProjectSelection = async () => {
+    const projects = Array.from(selectedProjects.values()).map((p) => ({
+      key: p.key,
+      name: p.name,
+      syncEnabled: true,
+      autoScore: p.autoScore ?? true,
+    }));
+
+    try {
+      await updateProjectsMutation.mutateAsync(projects);
+      toast.success("Projects saved", `${projects.length} project(s) selected for sync`);
+      setShowProjectSelector(false);
+    } catch (err) {
+      toast.error("Failed to save", err instanceof Error ? err.message : "Unknown error");
+    }
+  };
+
+  const filteredProjects = projectsData?.projects?.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.key.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   const handleDisconnect = async () => {
     try {
@@ -140,6 +211,104 @@ export default function JiraSettingsPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Project Selection */}
+          <div className="bg-surface-01 border border-border rounded-lg p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text-primary">
+                Projects to Sync
+              </h3>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowProjectSelector(!showProjectSelector)}
+              >
+                <FolderKanban className="w-4 h-4 mr-1" />
+                {showProjectSelector ? "Hide" : "Select Projects"}
+              </Button>
+            </div>
+
+            {/* Selected Projects Summary */}
+            {selectedProjects.size > 0 && !showProjectSelector && (
+              <div className="flex flex-wrap gap-2">
+                {Array.from(selectedProjects.values()).map((project) => (
+                  <Badge key={project.key} variant="default" className="text-xs">
+                    {project.key}: {project.name}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {selectedProjects.size === 0 && !showProjectSelector && (
+              <p className="text-sm text-text-secondary">
+                No projects selected. Click &quot;Select Projects&quot; to choose which JIRA projects to sync.
+              </p>
+            )}
+
+            {/* Project Selector */}
+            {showProjectSelector && (
+              <div className="space-y-3 pt-2">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                  <Input
+                    placeholder="Search projects..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* Project List */}
+                <div className="max-h-64 overflow-y-auto border border-border rounded-md divide-y divide-border">
+                  {projectsLoading ? (
+                    <div className="p-4 text-center text-text-secondary">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                      Loading projects...
+                    </div>
+                  ) : filteredProjects.length === 0 ? (
+                    <div className="p-4 text-center text-text-secondary">
+                      No projects found
+                    </div>
+                  ) : (
+                    filteredProjects.map((project) => (
+                      <label
+                        key={project.key}
+                        className="flex items-center gap-3 p-3 hover:bg-surface-02 cursor-pointer transition-colors"
+                      >
+                        <Checkbox
+                          checked={selectedProjects.has(project.key)}
+                          onCheckedChange={() => handleToggleProject(project)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-text-primary">
+                            {project.name}
+                          </div>
+                          <div className="text-xs text-text-secondary">
+                            {project.key} • {project.projectTypeKey}
+                          </div>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+
+                {/* Selection Summary & Save */}
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-sm text-text-secondary">
+                    {selectedProjects.size} project(s) selected
+                  </span>
+                  <Button
+                    onClick={handleSaveProjectSelection}
+                    isLoading={updateProjectsMutation.isPending}
+                    size="sm"
+                  >
+                    Save Selection
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sync Settings */}

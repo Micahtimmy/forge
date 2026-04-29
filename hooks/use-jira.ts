@@ -13,6 +13,16 @@ export interface JiraStatus {
   storiesSynced: number;
 }
 
+export interface JiraProject {
+  id: string;
+  key: string;
+  name: string;
+  projectTypeKey: string;
+  selected: boolean;
+  syncEnabled: boolean;
+  autoScore: boolean;
+}
+
 export function useJiraStatus() {
   return useQuery<JiraStatus>({
     queryKey: ["jira-status"],
@@ -72,6 +82,53 @@ export function useJiraDisconnect() {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jira-status"] });
+    },
+  });
+}
+
+export function useJiraProjects() {
+  return useQuery<{ projects: JiraProject[]; total: number }>({
+    queryKey: ["jira-projects"],
+    queryFn: async () => {
+      const response = await fetch("/api/jira/projects");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch projects");
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useUpdateJiraProjects() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      projects: Array<{
+        key: string;
+        name: string;
+        syncEnabled: boolean;
+        autoScore?: boolean;
+      }>
+    ) => {
+      const response = await fetch("/api/jira/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projects }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update projects");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jira-projects"] });
       queryClient.invalidateQueries({ queryKey: ["jira-status"] });
     },
   });
