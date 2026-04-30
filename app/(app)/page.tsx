@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ShieldCheck,
@@ -13,11 +14,13 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToastActions } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import { useDashboard } from "@/hooks/use-dashboard";
@@ -163,11 +166,36 @@ function StoryListSkeleton() {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const toast = useToastActions();
   const { data, isLoading, error, refetch, isRefetching } = useDashboard();
   const { data: jiraStatus } = useJiraStatus();
   const isJiraConnected = jiraStatus?.connected ?? false;
 
   const hasData = data && (data.recentStories.length > 0 || data.sprintHealth > 0);
+
+  // Handle OAuth errors in URL (e.g., flow_state_already_used)
+  useEffect(() => {
+    const errorCode = searchParams.get("error_code");
+    const errorParam = searchParams.get("error");
+
+    if (errorCode || errorParam) {
+      // Show a friendly message for common OAuth errors
+      if (errorCode === "flow_state_already_used") {
+        toast.info("Already signed in", "You're already logged in. Welcome back!");
+      } else if (errorParam) {
+        toast.warning("Auth notice", "There was an issue with authentication, but you're signed in.");
+      }
+
+      // Clean up the URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      url.searchParams.delete("error_code");
+      url.searchParams.delete("error_description");
+      router.replace(url.pathname, { scroll: false });
+    }
+  }, [searchParams, router, toast]);
 
   return (
     <div>

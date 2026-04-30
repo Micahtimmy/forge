@@ -9,8 +9,15 @@ import {
   CreditCard,
   Shield,
   ChevronRight,
+  MessageSquare,
+  Globe,
+  Sparkles,
+  BarChart3,
+  Clock,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 
@@ -67,6 +74,38 @@ const settingsSections = [
   },
 ];
 
+const comingSoonFeatures = [
+  {
+    icon: MessageSquare,
+    label: "Natural Language Query",
+    description: "Chat interface for querying sprint history in plain English",
+  },
+  {
+    icon: Globe,
+    label: "Cross-Workspace Analytics",
+    description: "Compare metrics across multiple JIRA workspaces",
+  },
+  {
+    icon: Sparkles,
+    label: "Slack Integration",
+    description: "Auto-push Signal updates to Slack channels",
+  },
+  {
+    icon: BarChart3,
+    label: "Advanced ML Predictions",
+    description: "Sprint outcome predictions from historical velocity",
+  },
+];
+
+const sessionFeatures = [
+  {
+    icon: Clock,
+    label: "Active Sessions",
+    description: "View and manage your active sessions",
+    comingSoon: true,
+  },
+];
+
 function SettingsItem({
   icon: Icon,
   label,
@@ -101,6 +140,41 @@ function SettingsItem({
   );
 }
 
+function ComingSoonItem({
+  icon: Icon,
+  label,
+  description,
+}: {
+  icon: React.ElementType;
+  label: string;
+  description: string;
+}) {
+  return (
+    <Tooltip content="We're building this — stay tuned" side="top">
+      <motion.div
+        variants={staggerItem}
+        className={cn(
+          "flex items-center gap-4 p-4 rounded-lg border bg-surface-01",
+          "border-border opacity-50 cursor-not-allowed select-none"
+        )}
+      >
+        <div className="p-2.5 rounded-md bg-surface-03">
+          <Icon className="w-5 h-5 text-text-tertiary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-text-tertiary">{label}</span>
+            <Badge variant="default" size="sm" className="text-[10px]">
+              Coming Soon
+            </Badge>
+          </div>
+          <div className="text-xs text-text-tertiary mt-0.5">{description}</div>
+        </div>
+      </motion.div>
+    </Tooltip>
+  );
+}
+
 export default function SettingsPage() {
   return (
     <div>
@@ -127,6 +201,40 @@ export default function SettingsPage() {
             </motion.div>
           </div>
         ))}
+
+        {/* Session Management - Coming Soon */}
+        <div>
+          <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wide mb-3">
+            Session
+          </h2>
+          <motion.div
+            className="space-y-2"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            {sessionFeatures.map((feature) => (
+              <ComingSoonItem key={feature.label} {...feature} />
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Coming Soon Features */}
+        <div>
+          <h2 className="text-sm font-semibold text-text-tertiary uppercase tracking-wide mb-3">
+            Coming Soon
+          </h2>
+          <motion.div
+            className="space-y-2"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            {comingSoonFeatures.map((feature) => (
+              <ComingSoonItem key={feature.label} {...feature} />
+            ))}
+          </motion.div>
+        </div>
       </div>
     </div>
   );

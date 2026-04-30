@@ -85,14 +85,11 @@ export function useJiraSync() {
   });
 }
 
-export function useJiraBoards(projectKey?: string) {
+export function useJiraBoards() {
   return useQuery<{ boards: JiraBoard[]; total: number }>({
-    queryKey: ["jira-boards", projectKey],
+    queryKey: ["jira-boards"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (projectKey) params.set("projectKey", projectKey);
-
-      const response = await fetch(`/api/jira/boards?${params.toString()}`);
+      const response = await fetch("/api/jira/boards");
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to fetch boards");
@@ -100,7 +97,6 @@ export function useJiraBoards(projectKey?: string) {
       return response.json();
     },
     staleTime: 5 * 60 * 1000,
-    enabled: true,
   });
 }
 

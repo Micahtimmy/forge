@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getJiraClientForWorkspace } from "@/lib/jira/auth";
 
-// Get JIRA boards for a project
+// Get ALL JIRA boards the user has access to
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -16,9 +16,6 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // Get project key from query params
-    const projectKey = req.nextUrl.searchParams.get("projectKey");
 
     // Get user's workspace
     let workspaceId: string | null = null;
@@ -59,19 +56,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch boards from JIRA
-    console.log("Fetching JIRA boards for project:", projectKey || "all");
-    const boards = await client.getBoards(projectKey || undefined);
+    // Fetch ALL boards
+    console.log("Fetching all JIRA boards...");
+    const boards = await client.getBoards();
+
+    const allBoards = boards.map((board) => ({
+      id: board.id,
+      name: board.name,
+      type: board.type,
+      projectKey: board.location?.projectKey || null,
+      projectName: board.location?.projectName || null,
+    }));
+
+    console.log(`Found ${allBoards.length} boards total`);
 
     return NextResponse.json({
-      boards: boards.map((board) => ({
-        id: board.id,
-        name: board.name,
-        type: board.type,
-        projectKey: board.location?.projectKey || null,
-        projectName: board.location?.projectName || null,
-      })),
-      total: boards.length,
+      boards: allBoards,
+      total: allBoards.length,
     });
   } catch (error) {
     console.error("Failed to fetch JIRA boards:", error);

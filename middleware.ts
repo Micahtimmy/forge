@@ -40,7 +40,8 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", "/invite", "/demo"];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
-  // Root path "/" should redirect to login if not authenticated (handled below)
+  // Landing page is public
+  const isLandingPage = pathname === "/";
 
   // Auth callback routes - these handle OAuth and email verification
   const isAuthCallbackRoute = pathname.startsWith("/auth/callback") || pathname.startsWith("/auth/confirm");
@@ -57,6 +58,18 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Allow landing page (public marketing page)
+  if (isLandingPage && !user) {
+    return supabaseResponse;
+  }
+
+  // If logged in user visits landing page, redirect to dashboard
+  if (isLandingPage && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/quality-gate";
+    return NextResponse.redirect(url);
+  }
+
   // Allow public routes and API routes
   if (isPublicRoute || isPublicApiRoute) {
     // If user is logged in and tries to access auth pages (not demo), redirect to dashboard
@@ -65,7 +78,7 @@ export async function middleware(request: NextRequest) {
     );
     if (user && isAuthPage) {
       const url = request.nextUrl.clone();
-      url.pathname = "/";
+      url.pathname = "/quality-gate";
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
@@ -74,8 +87,8 @@ export async function middleware(request: NextRequest) {
   // Redirect to signup/login if not authenticated
   if (!user) {
     const url = request.nextUrl.clone();
-    // Root path and onboarding go to signup (new users need to auth first)
-    if (pathname === "/" || pathname.startsWith("/onboarding")) {
+    // Onboarding goes to signup (new users need to auth first)
+    if (pathname.startsWith("/onboarding")) {
       url.pathname = "/signup";
     } else {
       url.pathname = "/login";

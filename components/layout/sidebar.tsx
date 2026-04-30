@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,6 +21,9 @@ import {
   Kanban,
   Gavel,
   Wand2,
+  Plus,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
@@ -27,6 +31,17 @@ import { useUser } from "@/hooks/use-user";
 import { Avatar } from "@/components/ui/avatar";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Modal, ModalFooter } from "@/components/ui/modal";
+import { Input, Label, Textarea } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown";
+import { useToastActions } from "@/components/ui/toast";
 import { sidebarVariants } from "@/lib/motion/variants";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -179,13 +194,60 @@ function NavLink({
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const toast = useToastActions();
   const { sidebarExpanded, sidebarPinned, toggleSidebar, toggleSidebarPin } =
     useAppStore();
   const { data: user } = useUser();
 
+  const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
+  const [newTeamName, setNewTeamName] = useState("");
+  const [newTeamDescription, setNewTeamDescription] = useState("");
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
+  };
+
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim()) {
+      toast.error("Team name required", "Please enter a name for your team");
+      return;
+    }
+
+    setIsCreatingTeam(true);
+    try {
+      const res = await fetch("/api/workspaces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTeamName,
+          description: newTeamDescription || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create team");
+      }
+
+      const data = await res.json();
+      toast.success("Team created", `${newTeamName} is now ready to use`);
+      setIsCreateTeamModalOpen(false);
+      setNewTeamName("");
+      setNewTeamDescription("");
+
+      // Refresh to load new workspace
+      window.location.reload();
+    } catch (err) {
+      toast.error(
+        "Failed to create team",
+        err instanceof Error ? err.message : "Unknown error"
+      );
+    } finally {
+      setIsCreatingTeam(false);
+    }
   };
 
   return (
@@ -269,42 +331,72 @@ export function Sidebar() {
       {/* Footer */}
       <div className="border-t border-border-subtle p-2">
         {/* Workspace Switcher */}
-        <button
-          className={cn(
-            "w-full flex items-center gap-2.5 p-2 rounded-md",
-            "hover:bg-surface-03 transition-colors text-left"
-          )}
-        >
-          <div className="w-7 h-7 rounded bg-iris-dim flex items-center justify-center flex-shrink-0">
-            <Building2 className="w-4 h-4 text-iris" />
-          </div>
-          <AnimatePresence>
-            {sidebarExpanded && (
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                className="flex-1 min-w-0 overflow-hidden"
-              >
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-medium text-text-primary truncate">
-                    {user?.workspaceName || "Workspace"}
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-text-tertiary flex-shrink-0" />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-2.5 p-2 rounded-md",
+                "hover:bg-surface-03 transition-colors text-left"
+              )}
+            >
+              <div className="w-7 h-7 rounded bg-iris-dim flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-4 h-4 text-iris" />
+              </div>
+              <AnimatePresence>
+                {sidebarExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="flex-1 min-w-0 overflow-hidden"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-medium text-text-primary truncate">
+                        {user?.workspaceName || "Workspace"}
+                      </span>
+                      <ChevronDown className="w-3 h-3 text-text-tertiary flex-shrink-0" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <div className="px-2 py-1.5">
+              <p className="text-xs text-text-tertiary">Current Workspace</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Check className="w-4 h-4 text-jade" />
+                <span className="text-sm font-medium text-text-primary">
+                  {user?.workspaceName || "Workspace"}
+                </span>
+              </div>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setIsCreateTeamModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Team
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <Settings2 className="w-4 h-4 mr-2" />
+              Workspace Settings
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User */}
-        <div
+        <Link
+          href="/profile"
           className={cn(
             "flex items-center gap-2.5 p-2 rounded-md mt-1",
             "hover:bg-surface-03 transition-colors cursor-pointer"
           )}
         >
-          <Avatar size="sm" alt={user?.displayName || "User"} status="online" />
+          <Avatar
+            size="sm"
+            src={user?.avatarUrl || undefined}
+            alt={user?.displayName || "User"}
+            status="online"
+          />
           <AnimatePresence>
             {sidebarExpanded && (
               <motion.div
@@ -326,8 +418,51 @@ export function Sidebar() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </Link>
       </div>
+
+      {/* Create Team Modal */}
+      <Modal
+        open={isCreateTeamModalOpen}
+        onOpenChange={setIsCreateTeamModalOpen}
+        title="Create New Team"
+        description="Set up a new workspace for your team"
+      >
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="team-name">Team Name</Label>
+            <Input
+              id="team-name"
+              placeholder="e.g., Mobile Team, Platform Squad"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="team-description">Description (Optional)</Label>
+            <Textarea
+              id="team-description"
+              placeholder="What does this team work on?"
+              value={newTeamDescription}
+              onChange={(e) => setNewTeamDescription(e.target.value)}
+              rows={2}
+            />
+          </div>
+        </div>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setIsCreateTeamModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreateTeam}
+            disabled={!newTeamName.trim()}
+            isLoading={isCreatingTeam}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Create Team
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Expand/Collapse Toggle */}
       <button

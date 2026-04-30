@@ -6,12 +6,14 @@ import { Topbar } from "@/components/layout/topbar";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { CommandPalette } from "@/components/command-palette";
 import { AIAssistant } from "@/components/ai/ai-assistant";
+import { OnboardingTour, useOnboarding } from "@/components/onboarding/onboarding-tour";
 import { PageErrorBoundary, LayoutErrorBoundary, FeatureErrorBoundary } from "@/components/ui/error-boundary";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { sidebarExpanded, setCommandPaletteOpen } = useAppStore();
+  const { showTour, completeTour, skipTour } = useOnboarding();
 
   // Global keyboard shortcut for command palette
   useEffect(() => {
@@ -61,6 +63,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <FeatureErrorBoundary featureName="AI Assistant">
         <AIAssistant />
       </FeatureErrorBoundary>
+
+      {/* Onboarding Tour for first-time users */}
+      {showTour && (
+        <OnboardingTour onComplete={completeTour} onSkip={skipTour} />
+      )}
     </div>
   );
 }

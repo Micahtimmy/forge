@@ -6,6 +6,9 @@ interface UserProfile {
   id: string;
   email: string;
   displayName: string;
+  jobTitle: string;
+  timezone: string;
+  avatarUrl: string | null;
   role: string;
   workspaceId: string;
   workspaceName: string;

@@ -11,12 +11,15 @@ import {
   Archive,
   MoreHorizontal,
   AlertCircle,
+  Send,
+  Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -42,6 +45,8 @@ interface SignalUpdateItem {
   status: UpdateStatus;
   sentAt: string | null;
   createdAt: string;
+  authorName?: string;
+  draftCount?: number;
 }
 
 function LoadingState() {
@@ -89,34 +94,52 @@ function UpdateRow({
       {/* Status Icon */}
       <div
         className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center",
+          "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
           update.status === "sent" && "bg-jade-dim",
           update.status === "draft" && "bg-amber-dim",
           update.status === "archived" && "bg-surface-03"
         )}
       >
-        {update.status === "sent" && <CheckCircle2 className="w-4 h-4 text-jade" />}
-        {update.status === "draft" && <Clock className="w-4 h-4 text-amber" />}
-        {update.status === "archived" && <Archive className="w-4 h-4 text-text-tertiary" />}
+        {update.status === "sent" && <CheckCircle2 className="w-5 h-5 text-jade" />}
+        {update.status === "draft" && <Clock className="w-5 h-5 text-amber" />}
+        {update.status === "archived" && <Archive className="w-5 h-5 text-text-tertiary" />}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-text-primary">{update.sprintRef || "Update"}</span>
-          <Badge variant={update.status === "sent" ? "excellent" : "fair"} size="sm">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-medium text-text-primary">
+            {update.sprintRef || "Stakeholder Update"}
+          </span>
+          <Badge
+            variant={update.status === "sent" ? "excellent" : update.status === "draft" ? "fair" : "default"}
+            size="sm"
+          >
             {update.status}
           </Badge>
         </div>
-        <div className="text-xs text-text-tertiary mt-1">
-          {update.sentAt
-            ? `Sent ${formatDistanceToNow(new Date(update.sentAt), { addSuffix: true })}`
-            : `Created ${formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}`}
+        <div className="flex items-center gap-2 text-xs text-text-tertiary">
+          {update.draftCount && update.draftCount > 0 && (
+            <span className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              {update.draftCount} draft{update.draftCount > 1 ? "s" : ""}
+            </span>
+          )}
+          <span>
+            {update.sentAt
+              ? `Sent ${formatDistanceToNow(new Date(update.sentAt), { addSuffix: true })}`
+              : `Created ${formatDistanceToNow(new Date(update.createdAt), { addSuffix: true })}`}
+          </span>
         </div>
       </div>
 
-      {/* Meta - Spacer */}
-      <div className="flex-1" />
+      {/* Author */}
+      <div className="text-right flex-shrink-0 hidden sm:block">
+        <div className="flex items-center gap-2 text-sm text-text-secondary">
+          <Avatar size="xs" alt={update.authorName || "User"} />
+          <span>{update.authorName || "You"}</span>
+        </div>
+      </div>
 
       {/* Actions */}
       <DropdownMenu>

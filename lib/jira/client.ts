@@ -158,17 +158,26 @@ export class JiraClient {
     );
   }
 
-  // Projects - fetch all with pagination
+  // Projects - fetch all with pagination, including all project types
   async getProjects(): Promise<JiraProject[]> {
     const allProjects: JiraProject[] = [];
     let startAt = 0;
     const maxResults = 50;
     let hasMore = true;
 
-    // Try paginated search endpoint first
+    // Try paginated search endpoint first with expanded parameters
+    // Include all project types: software, service_desk, business, etc.
     try {
       while (hasMore) {
-        const url = `${this.baseUrl}/project/search?startAt=${startAt}&maxResults=${maxResults}`;
+        // Build URL with parameters to get ALL project types
+        const params = new URLSearchParams({
+          startAt: String(startAt),
+          maxResults: String(maxResults),
+          expand: "description,lead,issueTypes,url,projectKeys",
+          // Don't filter by type - get all types
+        });
+
+        const url = `${this.baseUrl}/project/search?${params.toString()}`;
         console.log(`Fetching projects: ${url}`);
 
         const response = await this.request<{
@@ -184,6 +193,12 @@ export class JiraClient {
         hasMore = !response.isLast && response.values.length > 0;
 
         console.log(`Fetched ${allProjects.length}/${response.total} projects`);
+
+        // Safety limit to prevent infinite loops
+        if (allProjects.length > 1000) {
+          console.log("Reached 1000 project limit");
+          break;
+        }
       }
 
       console.log(`Total projects fetched: ${allProjects.length}`);
@@ -193,8 +208,14 @@ export class JiraClient {
     }
 
     // Fallback to simple project list (no pagination but returns all)
+    // This endpoint returns ALL projects the user has access to
     try {
-      const projects = await this.request<JiraProject[]>(`${this.baseUrl}/project`);
+      const params = new URLSearchParams({
+        expand: "description,lead,issueTypes,url",
+      });
+      const projects = await this.request<JiraProject[]>(
+        `${this.baseUrl}/project?${params.toString()}`
+      );
       console.log(`Fallback: Found ${projects.length} projects`);
       return projects;
     } catch (listError) {
@@ -203,7 +224,9 @@ export class JiraClient {
 
     // Last resort: recent projects
     try {
-      const projects = await this.request<JiraProject[]>(`${this.baseUrl}/project/recent?maxResults=100`);
+      const projects = await this.request<JiraProject[]>(
+        `${this.baseUrl}/project/recent?maxResults=100`
+      );
       console.log(`Recent projects: Found ${projects.length} projects`);
       return projects;
     } catch (recentError) {

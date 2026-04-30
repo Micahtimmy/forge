@@ -4,7 +4,7 @@ import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: "excellent" | "good" | "fair" | "poor" | "default" | "outline" | "iris";
+  variant?: "excellent" | "good" | "fair" | "poor" | "default" | "outline" | "iris" | "info";
   size?: "sm" | "md";
 }
 
@@ -16,6 +16,7 @@ const variantStyles = {
   default: "bg-surface-03 text-text-secondary border-border",
   outline: "bg-transparent text-text-secondary border-border",
   iris: "bg-iris-dim text-iris border-iris-border",
+  info: "bg-sky-dim text-sky border-sky-border",
 };
 
 const sizeStyles = {

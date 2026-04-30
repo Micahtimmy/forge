@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -18,9 +18,14 @@ import {
   Filter,
   ChevronDown,
   ChevronUp,
+  X,
+  Kanban,
+  ListTodo,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { PageHeaderCompact } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +50,7 @@ import {
   useUpdateJiraProjects,
   useJiraBoards,
   JiraProject,
+  JiraBoard,
   SyncOptions,
 } from "@/hooks/use-jira";
 import { fadeIn } from "@/lib/motion/variants";
@@ -75,18 +81,13 @@ export default function JiraSettingsPage() {
   const router = useRouter();
   const toast = useToastActions();
 
-  const { data: status, isLoading, error } = useJiraStatus();
-  const { data: projectsData, isLoading: projectsLoading } = useJiraProjects();
-  const { data: boardsData, isLoading: boardsLoading } = useJiraBoards();
-  const syncMutation = useJiraSync();
-  const disconnectMutation = useJiraDisconnect();
-  const updateProjectsMutation = useUpdateJiraProjects();
-
+  // Local state
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [projectSearchQuery, setProjectSearchQuery] = useState("");
+  const [boardSearchQuery, setBoardSearchQuery] = useState("");
   const [selectedProjects, setSelectedProjects] = useState<Map<string, JiraProject>>(new Map());
-  const [selectedBoards, setSelectedBoards] = useState<Set<number>>(new Set());
+  const [selectedBoards, setSelectedBoards] = useState<Map<number, JiraBoard>>(new Map());
   const [selectedIssueTypes, setSelectedIssueTypes] = useState<Set<string>>(
     new Set(["Story", "Task", "Bug", "Epic", "Objective"])
   );
@@ -94,6 +95,30 @@ export default function JiraSettingsPage() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showBoardSelector, setShowBoardSelector] = useState(false);
+
+  // Data fetching hooks
+  const { data: status, isLoading, error } = useJiraStatus();
+  const { data: projectsData, isLoading: projectsLoading } = useJiraProjects();
+  const { data: boardsData, isLoading: boardsLoading } = useJiraBoards();
+  const syncMutation = useJiraSync();
+  const disconnectMutation = useJiraDisconnect();
+  const updateProjectsMutation = useUpdateJiraProjects();
+
+  // Computed values
+  const selectedProjectKeys = useMemo(() => Array.from(selectedProjects.keys()), [selectedProjects]);
+
+  // Filter boards based on selected projects
+  const availableBoards = useMemo(() => {
+    if (!boardsData?.boards) return [];
+    if (selectedProjectKeys.length === 0) return boardsData.boards;
+    return boardsData.boards.filter(
+      (board) => board.projectKey && selectedProjectKeys.includes(board.projectKey)
+    );
+  }, [boardsData?.boards, selectedProjectKeys]);
+
+  // Separate boards by type
+  const scrumBoards = useMemo(() => availableBoards.filter((b) => b.type === "scrum"), [availableBoards]);
+  const kanbanBoards = useMemo(() => availableBoards.filter((b) => b.type === "kanban"), [availableBoards]);
 
   // Initialize selected projects from API data
   useEffect(() => {
@@ -133,7 +158,7 @@ export default function JiraSettingsPage() {
     };
 
     if (selectedBoards.size > 0) {
-      syncOptions.boardIds = Array.from(selectedBoards);
+      syncOptions.boardIds = Array.from(selectedBoards.keys());
     }
 
     try {
@@ -147,6 +172,7 @@ export default function JiraSettingsPage() {
     }
   };
 
+  // Project selection handlers
   const handleToggleProject = (project: JiraProject) => {
     setSelectedProjects((prev) => {
       const newMap = new Map(prev);
@@ -159,18 +185,59 @@ export default function JiraSettingsPage() {
     });
   };
 
-  const handleToggleBoard = (boardId: number) => {
-    setSelectedBoards((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(boardId)) {
-        newSet.delete(boardId);
-      } else {
-        newSet.add(boardId);
-      }
-      return newSet;
+  const handleSelectAllProjects = () => {
+    if (!projectsData?.projects) return;
+    const filtered = filteredProjects;
+    const newMap = new Map(selectedProjects);
+    filtered.forEach((p) => newMap.set(p.key, { ...p, syncEnabled: true }));
+    setSelectedProjects(newMap);
+  };
+
+  const handleClearAllProjects = () => {
+    setSelectedProjects(new Map());
+  };
+
+  const handleRemoveProject = (projectKey: string) => {
+    setSelectedProjects((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(projectKey);
+      return newMap;
     });
   };
 
+  // Board selection handlers
+  const handleToggleBoard = (board: JiraBoard) => {
+    setSelectedBoards((prev) => {
+      const newMap = new Map(prev);
+      if (newMap.has(board.id)) {
+        newMap.delete(board.id);
+      } else {
+        newMap.set(board.id, board);
+      }
+      return newMap;
+    });
+  };
+
+  const handleSelectAllBoards = (type?: "scrum" | "kanban") => {
+    const boards = type ? availableBoards.filter((b) => b.type === type) : filteredBoards;
+    const newMap = new Map(selectedBoards);
+    boards.forEach((b) => newMap.set(b.id, b));
+    setSelectedBoards(newMap);
+  };
+
+  const handleClearAllBoards = () => {
+    setSelectedBoards(new Map());
+  };
+
+  const handleRemoveBoard = (boardId: number) => {
+    setSelectedBoards((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(boardId);
+      return newMap;
+    });
+  };
+
+  // Issue type handlers
   const handleToggleIssueType = (issueType: string) => {
     setSelectedIssueTypes((prev) => {
       const newSet = new Set(prev);
@@ -181,6 +248,14 @@ export default function JiraSettingsPage() {
       }
       return newSet;
     });
+  };
+
+  const handleSelectAllIssueTypes = () => {
+    setSelectedIssueTypes(new Set(ALL_ISSUE_TYPES.map((t) => t.value)));
+  };
+
+  const handleClearIssueTypes = () => {
+    setSelectedIssueTypes(new Set());
   };
 
   const handleSaveProjectSelection = async () => {
@@ -200,27 +275,27 @@ export default function JiraSettingsPage() {
     }
   };
 
-  const handleSelectAllIssueTypes = () => {
-    setSelectedIssueTypes(new Set(ALL_ISSUE_TYPES.map((t) => t.value)));
-  };
-
-  const handleClearIssueTypes = () => {
-    setSelectedIssueTypes(new Set());
-  };
-
-  const filteredProjects =
-    projectsData?.projects?.filter(
+  // Filtered lists
+  const filteredProjects = useMemo(() => {
+    if (!projectsData?.projects) return [];
+    if (!projectSearchQuery) return projectsData.projects;
+    const query = projectSearchQuery.toLowerCase();
+    return projectsData.projects.filter(
       (p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.key.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
+        p.name.toLowerCase().includes(query) ||
+        p.key.toLowerCase().includes(query)
+    );
+  }, [projectsData?.projects, projectSearchQuery]);
 
-  const filteredBoards =
-    boardsData?.boards?.filter(
+  const filteredBoards = useMemo(() => {
+    if (!boardSearchQuery) return availableBoards;
+    const query = boardSearchQuery.toLowerCase();
+    return availableBoards.filter(
       (b) =>
-        b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (b.projectKey && b.projectKey.toLowerCase().includes(searchQuery.toLowerCase()))
-    ) || [];
+        b.name.toLowerCase().includes(query) ||
+        (b.projectKey && b.projectKey.toLowerCase().includes(query))
+    );
+  }, [availableBoards, boardSearchQuery]);
 
   const handleDisconnect = async () => {
     try {
@@ -269,8 +344,8 @@ export default function JiraSettingsPage() {
       </Button>
 
       <PageHeaderCompact
-        title="JIRA Connection"
-        subtitle="Connect your Atlassian JIRA instance to sync stories, tasks, and objectives"
+        title="JIRA Integration"
+        subtitle="Connect and sync your JIRA projects, boards, and issues"
       />
 
       {isConnected ? (
@@ -291,7 +366,7 @@ export default function JiraSettingsPage() {
             </div>
 
             <div className="mt-4 pt-4 border-t border-border">
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-4 gap-4 text-sm">
                 <div>
                   <div className="text-text-tertiary">Last synced</div>
                   <div className="text-text-primary font-medium">
@@ -305,8 +380,14 @@ export default function JiraSettingsPage() {
                   <div className="text-text-primary font-medium">{status?.storiesSynced || 0}</div>
                 </div>
                 <div>
-                  <div className="text-text-tertiary">Projects selected</div>
+                  <div className="text-text-tertiary">Projects</div>
                   <div className="text-text-primary font-medium">{selectedProjects.size}</div>
+                </div>
+                <div>
+                  <div className="text-text-tertiary">Boards</div>
+                  <div className="text-text-primary font-medium">
+                    {selectedBoards.size || "All"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -318,45 +399,93 @@ export default function JiraSettingsPage() {
               <div className="flex items-center gap-2">
                 <FolderKanban className="w-4 h-4 text-text-tertiary" />
                 <h3 className="text-sm font-semibold text-text-primary">Projects</h3>
+                {selectedProjects.size > 0 && (
+                  <Badge variant="default" className="text-xs">
+                    {selectedProjects.size} selected
+                  </Badge>
+                )}
               </div>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowProjectSelector(!showProjectSelector)}
               >
-                {showProjectSelector ? "Hide" : "Select Projects"}
+                {showProjectSelector ? "Done" : "Manage Projects"}
               </Button>
             </div>
 
-            {selectedProjects.size > 0 && !showProjectSelector && (
+            {/* Selected Projects Tags */}
+            {selectedProjects.size > 0 && (
               <div className="flex flex-wrap gap-2">
                 {Array.from(selectedProjects.values()).map((project) => (
-                  <Badge key={project.key} variant="default" className="text-xs">
-                    {project.key}: {project.name}
+                  <Badge
+                    key={project.key}
+                    variant="default"
+                    className="text-xs pr-1 flex items-center gap-1"
+                  >
+                    {project.key}
+                    <button
+                      onClick={() => handleRemoveProject(project.key)}
+                      className="ml-1 p-0.5 hover:bg-surface-03 rounded transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </Badge>
                 ))}
+                {selectedProjects.size > 1 && (
+                  <button
+                    onClick={handleClearAllProjects}
+                    className="text-xs text-coral hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
             )}
 
             {selectedProjects.size === 0 && !showProjectSelector && (
               <p className="text-sm text-text-secondary">
-                No projects selected. Click &quot;Select Projects&quot; to choose which JIRA projects
-                to sync.
+                No projects selected. Click &quot;Manage Projects&quot; to choose which JIRA projects to sync.
               </p>
             )}
 
             {showProjectSelector && (
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-2 border-t border-border">
+                {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                   <Input
                     placeholder="Search projects..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={projectSearchQuery}
+                    onChange={(e) => setProjectSearchQuery(e.target.value)}
                     className="pl-9"
                   />
                 </div>
 
+                {/* Quick Actions */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleSelectAllProjects}
+                      className="text-xs text-iris hover:underline flex items-center gap-1"
+                    >
+                      <CheckSquare className="w-3 h-3" />
+                      Select all {filteredProjects.length > 0 && `(${filteredProjects.length})`}
+                    </button>
+                    <button
+                      onClick={handleClearAllProjects}
+                      className="text-xs text-text-tertiary hover:underline flex items-center gap-1"
+                    >
+                      <Square className="w-3 h-3" />
+                      Clear
+                    </button>
+                  </div>
+                  <span className="text-xs text-text-tertiary">
+                    {projectsData?.total || 0} total projects
+                  </span>
+                </div>
+
+                {/* Project List */}
                 <div className="max-h-64 overflow-y-auto border border-border rounded-md divide-y divide-border">
                   {projectsLoading ? (
                     <div className="p-4 text-center text-text-secondary">
@@ -364,7 +493,9 @@ export default function JiraSettingsPage() {
                       Loading projects...
                     </div>
                   ) : filteredProjects.length === 0 ? (
-                    <div className="p-4 text-center text-text-secondary">No projects found</div>
+                    <div className="p-4 text-center text-text-secondary">
+                      {projectSearchQuery ? "No projects match your search" : "No projects found"}
+                    </div>
                   ) : (
                     filteredProjects.map((project) => (
                       <label
@@ -386,10 +517,8 @@ export default function JiraSettingsPage() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-sm text-text-secondary">
-                    {selectedProjects.size} project(s) selected
-                  </span>
+                {/* Save Button */}
+                <div className="flex items-center justify-end pt-2">
                   <Button
                     onClick={handleSaveProjectSelection}
                     isLoading={updateProjectsMutation.isPending}
@@ -407,46 +536,140 @@ export default function JiraSettingsPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <LayoutGrid className="w-4 h-4 text-text-tertiary" />
-                <h3 className="text-sm font-semibold text-text-primary">Boards (Optional)</h3>
+                <h3 className="text-sm font-semibold text-text-primary">Boards</h3>
+                {selectedBoards.size > 0 && (
+                  <Badge variant="default" className="text-xs">
+                    {selectedBoards.size} selected
+                  </Badge>
+                )}
               </div>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowBoardSelector(!showBoardSelector)}
               >
-                {showBoardSelector ? "Hide" : "Select Boards"}
+                {showBoardSelector ? "Done" : "Manage Boards"}
               </Button>
             </div>
 
-            {selectedBoards.size > 0 && !showBoardSelector && (
-              <div className="flex flex-wrap gap-2">
-                {boardsData?.boards
-                  ?.filter((b) => selectedBoards.has(b.id))
-                  .map((board) => (
-                    <Badge key={board.id} variant="default" className="text-xs">
-                      {board.name} ({board.type})
-                    </Badge>
-                  ))}
+            {/* Board Summary */}
+            {!showBoardSelector && (
+              <div className="space-y-2">
+                {selectedBoards.size > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(selectedBoards.values()).map((board) => (
+                      <Badge
+                        key={board.id}
+                        variant={board.type === "kanban" ? "info" : "default"}
+                        className="text-xs pr-1 flex items-center gap-1"
+                      >
+                        {board.type === "kanban" ? (
+                          <Kanban className="w-3 h-3" />
+                        ) : (
+                          <ListTodo className="w-3 h-3" />
+                        )}
+                        {board.name}
+                        <button
+                          onClick={() => handleRemoveBoard(board.id)}
+                          className="ml-1 p-0.5 hover:bg-surface-03 rounded transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                    {selectedBoards.size > 1 && (
+                      <button
+                        onClick={handleClearAllBoards}
+                        className="text-xs text-coral hover:underline"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary">
+                    All boards synced. Select specific boards to filter data by board type.
+                  </p>
+                )}
+
+                {/* Board Stats */}
+                {availableBoards.length > 0 && (
+                  <div className="flex items-center gap-4 text-xs text-text-tertiary pt-2">
+                    <span className="flex items-center gap-1">
+                      <ListTodo className="w-3 h-3" />
+                      {scrumBoards.length} Scrum
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Kanban className="w-3 h-3" />
+                      {kanbanBoards.length} Kanban
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
-            {selectedBoards.size === 0 && !showBoardSelector && (
-              <p className="text-sm text-text-secondary">
-                No boards selected. All items from selected projects will be synced. Select specific
-                boards to filter.
-              </p>
-            )}
-
             {showBoardSelector && (
-              <div className="space-y-3 pt-2">
-                <div className="max-h-48 overflow-y-auto border border-border rounded-md divide-y divide-border">
+              <div className="space-y-3 pt-2 border-t border-border">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                  <Input
+                    placeholder="Search boards..."
+                    value={boardSearchQuery}
+                    onChange={(e) => setBoardSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleSelectAllBoards()}
+                      className="text-xs text-iris hover:underline flex items-center gap-1"
+                    >
+                      <CheckSquare className="w-3 h-3" />
+                      Select all
+                    </button>
+                    <button
+                      onClick={() => handleSelectAllBoards("scrum")}
+                      className="text-xs text-text-secondary hover:text-iris flex items-center gap-1"
+                    >
+                      <ListTodo className="w-3 h-3" />
+                      All Scrum
+                    </button>
+                    <button
+                      onClick={() => handleSelectAllBoards("kanban")}
+                      className="text-xs text-text-secondary hover:text-iris flex items-center gap-1"
+                    >
+                      <Kanban className="w-3 h-3" />
+                      All Kanban
+                    </button>
+                    <button
+                      onClick={handleClearAllBoards}
+                      className="text-xs text-text-tertiary hover:underline flex items-center gap-1"
+                    >
+                      <Square className="w-3 h-3" />
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Board List */}
+                <div className="max-h-64 overflow-y-auto border border-border rounded-md divide-y divide-border">
                   {boardsLoading ? (
                     <div className="p-4 text-center text-text-secondary">
                       <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
                       Loading boards...
                     </div>
                   ) : filteredBoards.length === 0 ? (
-                    <div className="p-4 text-center text-text-secondary">No boards found</div>
+                    <div className="p-4 text-center text-text-secondary">
+                      {boardSearchQuery
+                        ? "No boards match your search"
+                        : selectedProjects.size > 0
+                        ? "No boards found for selected projects"
+                        : "No boards found"}
+                    </div>
                   ) : (
                     filteredBoards.map((board) => (
                       <label
@@ -455,19 +678,36 @@ export default function JiraSettingsPage() {
                       >
                         <Checkbox
                           checked={selectedBoards.has(board.id)}
-                          onCheckedChange={() => handleToggleBoard(board.id)}
+                          onCheckedChange={() => handleToggleBoard(board)}
                         />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-text-primary">{board.name}</div>
-                          <div className="text-xs text-text-secondary">
-                            {board.projectKey && `${board.projectKey} • `}
-                            {board.type} board
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          {board.type === "kanban" ? (
+                            <Kanban className="w-4 h-4 text-iris" />
+                          ) : (
+                            <ListTodo className="w-4 h-4 text-jade" />
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-text-primary">{board.name}</div>
+                            <div className="text-xs text-text-secondary">
+                              {board.projectKey && `${board.projectKey} • `}
+                              {board.type} board
+                            </div>
                           </div>
                         </div>
+                        <Badge
+                          variant={board.type === "kanban" ? "info" : "default"}
+                          className="text-xs"
+                        >
+                          {board.type}
+                        </Badge>
                       </label>
                     ))
                   )}
                 </div>
+
+                <p className="text-xs text-text-tertiary">
+                  Scrum boards sync to Quality Gate & Horizon. Kanban boards sync to Kanban view.
+                </p>
               </div>
             )}
           </div>
@@ -492,12 +732,12 @@ export default function JiraSettingsPage() {
             {/* Quick Summary */}
             {!showAdvancedFilters && (
               <div className="text-sm text-text-secondary">
-                {selectedIssueTypes.size} issue type(s) • {DATE_RANGE_PRESETS.find(p => p.value === dateRangePreset)?.label}
+                {selectedIssueTypes.size} issue types • {DATE_RANGE_PRESETS.find((p) => p.value === dateRangePreset)?.label}
               </div>
             )}
 
             {showAdvancedFilters && (
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-2 border-t border-border">
                 {/* Issue Types */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -609,7 +849,7 @@ export default function JiraSettingsPage() {
                   )
                 }
               >
-                {syncMutation.isPending ? "Syncing..." : "Full Sync (All Time)"}
+                {syncMutation.isPending ? "Syncing..." : "Full Sync"}
               </Button>
               {siteUrl && (
                 <Button
@@ -624,7 +864,7 @@ export default function JiraSettingsPage() {
           </div>
 
           {/* Danger Zone */}
-          <div className="bg-surface-01 border border-coral-border rounded-lg p-5">
+          <div className="bg-surface-01 border border-coral/30 rounded-lg p-5">
             <h3 className="text-sm font-semibold text-coral mb-2">Danger Zone</h3>
             <p className="text-xs text-text-secondary mb-4">
               Disconnecting will stop syncing and remove stored JIRA credentials. Your data in FORGE
