@@ -158,32 +158,58 @@ export class JiraClient {
     );
   }
 
-  // Projects
+  // Projects - fetch all with pagination
   async getProjects(): Promise<JiraProject[]> {
-    // Try multiple endpoints in order of preference
-    const endpoints = [
-      { url: `${this.baseUrl}/project/search?maxResults=100`, extract: (r: { values: JiraProject[] }) => r.values },
-      { url: `${this.baseUrl}/project`, extract: (r: JiraProject[]) => r },
-      { url: `${this.baseUrl}/project/recent?maxResults=50`, extract: (r: JiraProject[]) => r },
-    ];
+    const allProjects: JiraProject[] = [];
+    let startAt = 0;
+    const maxResults = 50;
+    let hasMore = true;
 
-    let lastError: Error | null = null;
+    // Try paginated search endpoint first
+    try {
+      while (hasMore) {
+        const url = `${this.baseUrl}/project/search?startAt=${startAt}&maxResults=${maxResults}`;
+        console.log(`Fetching projects: ${url}`);
 
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`Trying JIRA endpoint: ${endpoint.url}`);
-        const response = await this.request<JiraProject[] | { values: JiraProject[] }>(endpoint.url);
-        const projects = endpoint.extract(response as never);
-        console.log(`Success! Found ${projects.length} projects`);
-        return projects;
-      } catch (error) {
-        console.error(`Failed endpoint ${endpoint.url}:`, error instanceof Error ? error.message : error);
-        lastError = error instanceof Error ? error : new Error(String(error));
-        // Continue to next endpoint
+        const response = await this.request<{
+          values: JiraProject[];
+          startAt: number;
+          maxResults: number;
+          total: number;
+          isLast: boolean;
+        }>(url);
+
+        allProjects.push(...response.values);
+        startAt += response.values.length;
+        hasMore = !response.isLast && response.values.length > 0;
+
+        console.log(`Fetched ${allProjects.length}/${response.total} projects`);
       }
+
+      console.log(`Total projects fetched: ${allProjects.length}`);
+      return allProjects;
+    } catch (searchError) {
+      console.error("Project search failed, trying fallback:", searchError);
     }
 
-    throw lastError || new Error("All project endpoints failed");
+    // Fallback to simple project list (no pagination but returns all)
+    try {
+      const projects = await this.request<JiraProject[]>(`${this.baseUrl}/project`);
+      console.log(`Fallback: Found ${projects.length} projects`);
+      return projects;
+    } catch (listError) {
+      console.error("Project list failed:", listError);
+    }
+
+    // Last resort: recent projects
+    try {
+      const projects = await this.request<JiraProject[]>(`${this.baseUrl}/project/recent?maxResults=100`);
+      console.log(`Recent projects: Found ${projects.length} projects`);
+      return projects;
+    } catch (recentError) {
+      console.error("Recent projects failed:", recentError);
+      throw recentError;
+    }
   }
 
   async getProject(projectKeyOrId: string): Promise<JiraProject> {
