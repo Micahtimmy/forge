@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createUntypedAdminClient } from "@/lib/db/client";
 import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
 import { syncStoriesFromJira, syncSprintsFromJira, getProjectKeysForWorkspace } from "@/lib/jira/sync";
@@ -83,9 +84,12 @@ export async function POST(req: NextRequest) {
 
     if (validated.projectKey) {
       projectKeys = [validated.projectKey];
+    } else if (validated.projectKeys && validated.projectKeys.length > 0) {
+      projectKeys = validated.projectKeys;
     } else {
-      // Check for selected projects in database
-      const { data: selectedProjects } = await adminClient
+      // Check for selected projects in database (use untyped client for new table)
+      const untypedClient = createUntypedAdminClient();
+      const { data: selectedProjects } = await untypedClient
         .from("jira_selected_projects")
         .select("project_key")
         .eq("workspace_id", workspaceId)

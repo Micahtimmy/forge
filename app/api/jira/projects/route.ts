@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createUntypedAdminClient } from "@/lib/db/client";
 import { getJiraClientForWorkspace } from "@/lib/jira/auth";
 
 // Get available JIRA projects for the workspace
@@ -60,8 +61,9 @@ export async function GET(req: NextRequest) {
     console.log("Fetching JIRA projects for workspace:", workspaceId);
     const projects = await client.getProjects();
 
-    // Get selected projects from database
-    const { data: selectedProjects } = await adminClient
+    // Get selected projects from database (use untyped client for new table)
+    const untypedClient = createUntypedAdminClient();
+    const { data: selectedProjects } = await untypedClient
       .from("jira_selected_projects")
       .select("project_key, sync_enabled, auto_score")
       .eq("workspace_id", workspaceId);
@@ -157,14 +159,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Clear existing selections and insert new ones
-    await adminClient
+    // Clear existing selections and insert new ones (use untyped client for new table)
+    const untypedClient = createUntypedAdminClient();
+
+    await untypedClient
       .from("jira_selected_projects")
       .delete()
       .eq("workspace_id", workspaceId);
 
     if (projects.length > 0) {
-      const { error } = await adminClient.from("jira_selected_projects").insert(
+      const { error } = await untypedClient.from("jira_selected_projects").insert(
         projects.map((p) => ({
           workspace_id: workspaceId,
           project_key: p.key,
