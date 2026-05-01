@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export interface PageHeaderProps {
   title: React.ReactNode;
-  description?: string;
+  description?: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
 }

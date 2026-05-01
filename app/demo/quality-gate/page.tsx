@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,12 +14,19 @@ import {
   ArrowUpRight,
   AlertTriangle,
   Brain,
+  User,
+  Users,
+  TrendingUp,
+  Target,
+  BarChart3,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreRing } from "@/components/ui/score-ring";
+import { HelpTooltip, HelpInline } from "@/components/ui/help-tooltip";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { useToastActions } from "@/components/ui/toast";
 import {
   Select,
@@ -39,7 +46,6 @@ import {
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
 import {
-  DEMO_STORIES,
   DEMO_SPRINTS,
   DEMO_STORY_INSIGHTS,
   DEMO_STORY_SLIP_PREDICTIONS,
@@ -47,13 +53,23 @@ import {
   calculateSprintHealth,
   getScoreDistribution,
 } from "@/lib/demo/mock-data";
+import {
+  PERSONA_STORIES,
+  PERSONA_CONFIGS,
+  filterStoriesForPersona,
+  getPersonaMetrics,
+  getPersonaInsights,
+  HELP_CONTENT,
+  type PersonaRole,
+} from "@/lib/demo/persona-data";
+import { useDemoStore } from "@/stores/demo-store";
 import { StoryInsightCard } from "@/components/system/intelligence/StoryInsightCard";
 import { SmartEmptyState } from "@/components/system/feedback/SmartEmptyState";
 
 type ScoreFilter = "all" | "excellent" | "good" | "fair" | "poor";
 type ViewMode = "grid" | "list" | "insights";
 
-function StoryCard({ story, index }: { story: (typeof DEMO_STORIES)[0]; index: number }) {
+function StoryCard({ story, index }: { story: (typeof PERSONA_STORIES)[0]; index: number }) {
   const score = story.score?.totalScore ?? 0;
   const hasSuggestions = story.score?.aiSuggestions && story.score.aiSuggestions.length > 0;
 
@@ -100,11 +116,17 @@ function StoryCard({ story, index }: { story: (typeof DEMO_STORIES)[0]; index: n
             {story.storyPoints && (
               <span>{story.storyPoints} pts</span>
             )}
-            {story.assigneeId && (
-              <span>Assigned</span>
+            {(story as any).assigneeName && (
+              <span className="flex items-center gap-1">
+                <User className="w-3 h-3" />
+                {(story as any).assigneeName}
+              </span>
             )}
-            {story.labels && story.labels.length > 0 && (
-              <span>{story.labels.slice(0, 2).join(", ")}</span>
+            {(story as any).team && (
+              <span className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                {(story as any).team}
+              </span>
             )}
           </div>
         </div>
@@ -114,7 +136,68 @@ function StoryCard({ story, index }: { story: (typeof DEMO_STORIES)[0]; index: n
   );
 }
 
-function SprintHealthPanel({ stories }: { stories: typeof DEMO_STORIES }) {
+function PersonaContextBanner({ role }: { role: PersonaRole }) {
+  const config = PERSONA_CONFIGS[role];
+  const metrics = getPersonaMetrics(role);
+  const insights = getPersonaInsights(role);
+
+  // Get relevant insight for quick display
+  const primaryInsight = insights.find(i => i.type === "warning" || i.type === "action");
+
+  return (
+    <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-iris/10 to-transparent border border-iris/20">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-iris/20">
+            {role === "developer" && <User className="w-5 h-5 text-iris" />}
+            {role === "scrum_master" && <Target className="w-5 h-5 text-iris" />}
+            {role === "product_manager" && <BarChart3 className="w-5 h-5 text-iris" />}
+            {role === "engineering_manager" && <Users className="w-5 h-5 text-iris" />}
+            {role === "rte" && <TrendingUp className="w-5 h-5 text-iris" />}
+            {role === "executive" && <TrendingUp className="w-5 h-5 text-iris" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-text-primary">{config.label} View</h3>
+              <HelpTooltip
+                content={
+                  <div>
+                    <p className="font-medium mb-1">{config.label}</p>
+                    <p className="text-slate-300">{config.description}</p>
+                    <p className="mt-2 text-xs text-slate-400">
+                      Showing: {config.dataFocus.stories === "assigned" ? "Your assigned stories" :
+                        config.dataFocus.stories === "sprint" ? "Current sprint stories" :
+                        config.dataFocus.stories === "team" ? "Team stories" :
+                        config.dataFocus.stories === "at_risk" ? "At-risk stories" : "All stories"}
+                    </p>
+                  </div>
+                }
+              />
+            </div>
+            <p className="text-sm text-text-tertiary">{config.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          {primaryInsight && (
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm",
+              primaryInsight.type === "warning" ? "bg-amber/10 text-amber" : "bg-iris/10 text-iris"
+            )}>
+              {primaryInsight.type === "warning" && <AlertTriangle className="w-4 h-4" />}
+              {primaryInsight.title}
+            </div>
+          )}
+          <div className="text-right">
+            <div className="text-2xl font-bold text-text-primary">{metrics.totalStories}</div>
+            <div className="text-xs text-text-tertiary">stories in view</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SprintHealthPanel({ stories, role }: { stories: typeof PERSONA_STORIES; role: PersonaRole }) {
   const health = calculateSprintHealth(stories);
   const distribution = getScoreDistribution(stories);
   const totalPoints = stories.reduce((acc, s) => acc + (s.storyPoints ?? 0), 0);
@@ -122,25 +205,50 @@ function SprintHealthPanel({ stories }: { stories: typeof DEMO_STORIES }) {
     .filter((s) => s.status === "Done")
     .reduce((acc, s) => acc + (s.storyPoints ?? 0), 0);
 
+  const metrics = getPersonaMetrics(role);
+
   return (
-    <div className="bg-surface-01 border border-border rounded-lg p-5">
-      <h3 className="text-sm font-medium text-text-secondary mb-4">Sprint Health</h3>
-
-      <div className="flex items-center justify-center mb-4">
-        <ScoreRing score={health} size="xl" />
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-text-secondary">Total Stories</span>
-          <span className="font-mono text-text-primary">{stories.length}</span>
+    <div className="space-y-4">
+      <CollapsibleSection
+        title="Sprint Health"
+        helpContent={HELP_CONTENT.sprintHealth}
+        defaultOpen={true}
+        storageKey="qg-sprint-health"
+        badge={
+          <Badge
+            variant={health >= 80 ? "good" : health >= 60 ? "fair" : "poor"}
+            size="sm"
+          >
+            {health}%
+          </Badge>
+        }
+      >
+        <div className="flex items-center justify-center mb-4">
+          <ScoreRing score={health} size="xl" />
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-text-secondary">Story Points</span>
-          <span className="font-mono text-text-primary">{completedPoints}/{totalPoints}</span>
-        </div>
 
-        <div className="pt-3 border-t border-border space-y-2">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-text-secondary">Total Stories</span>
+            <span className="font-mono text-text-primary">{stories.length}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <HelpInline
+              label="Story Points"
+              content="Total story points in the sprint. Completed/Total format."
+            />
+            <span className="font-mono text-text-primary">{completedPoints}/{totalPoints}</span>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Score Distribution"
+        helpContent="Breakdown of stories by quality score ranges. Aim for more green, fewer red."
+        defaultOpen={true}
+        storageKey="qg-score-dist"
+      >
+        <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-jade" />
@@ -165,27 +273,141 @@ function SprintHealthPanel({ stories }: { stories: typeof DEMO_STORIES }) {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-coral" />
-              <span className="text-text-secondary">Poor (&lt;50)</span>
+              <HelpInline
+                label="Poor (<50)"
+                content={HELP_CONTENT.atRiskStories}
+              />
             </div>
             <span className="font-mono text-coral">{distribution.poor}</span>
           </div>
         </div>
+      </CollapsibleSection>
 
-        <div className="pt-3 border-t border-border">
-          <Link href="/demo/quality-gate/rubrics">
-            <Button variant="secondary" size="sm" className="w-full">
-              Configure Rubric
-            </Button>
-          </Link>
+      {/* Role-specific metrics */}
+      <CollapsibleSection
+        title={`${PERSONA_CONFIGS[role].label} Metrics`}
+        helpContent={`Key metrics for your ${PERSONA_CONFIGS[role].label.toLowerCase()} role.`}
+        defaultOpen={role !== "executive"}
+        storageKey={`qg-${role}-metrics`}
+      >
+        <div className="space-y-2">
+          {role === "developer" && (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-secondary">My Points</span>
+                <span className="font-mono text-text-primary">{(metrics as any).myPoints ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-secondary">PR Reviews Pending</span>
+                <span className="font-mono text-amber">{(metrics as any).prReviewsPending ?? 0}</span>
+              </div>
+            </>
+          )}
+          {role === "scrum_master" && (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <HelpInline label="Velocity" content={HELP_CONTENT.velocity} />
+                <span className="font-mono text-text-primary">{(metrics as any).teamVelocity ?? 0} pts</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-secondary">Capacity</span>
+                <span className="font-mono text-text-primary">{(metrics as any).capacityUtilization ?? 0}%</span>
+              </div>
+            </>
+          )}
+          {role === "product_manager" && (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-secondary">Ready for Sprint</span>
+                <span className="font-mono text-jade">{(metrics as any).readyForSprint ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-secondary">Needs Refinement</span>
+                <span className="font-mono text-amber">{(metrics as any).needsRefinement ?? 0}</span>
+              </div>
+            </>
+          )}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-text-secondary">At Risk</span>
+            <span className="font-mono text-coral">{metrics.atRiskCount}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <HelpInline label="Avg Score" content={HELP_CONTENT.scoreRing} />
+            <span className="font-mono text-text-primary">{metrics.averageScore}</span>
+          </div>
         </div>
+      </CollapsibleSection>
+
+      <div className="pt-2">
+        <Link href="/demo/quality-gate/rubrics">
+          <Button variant="secondary" size="sm" className="w-full">
+            Configure Rubric
+          </Button>
+        </Link>
       </div>
     </div>
+  );
+}
+
+function PersonaInsightsPanel({ role }: { role: PersonaRole }) {
+  const insights = getPersonaInsights(role);
+
+  if (insights.length === 0) return null;
+
+  return (
+    <CollapsibleSection
+      title="AI Insights"
+      helpContent="AI-generated insights and recommendations based on your role and current data."
+      defaultOpen={true}
+      storageKey="qg-ai-insights"
+      badge={
+        <Badge variant="default" size="sm" className="bg-iris/20 text-iris">
+          <Brain className="w-3 h-3 mr-1" />
+          {insights.length}
+        </Badge>
+      }
+    >
+      <div className="space-y-2">
+        {insights.map((insight, index) => (
+          <div
+            key={index}
+            className={cn(
+              "p-3 rounded-lg border",
+              insight.type === "warning" && "bg-amber/5 border-amber/20",
+              insight.type === "success" && "bg-jade/5 border-jade/20",
+              insight.type === "info" && "bg-iris/5 border-iris/20",
+              insight.type === "action" && "bg-surface-02 border-border"
+            )}
+          >
+            <div className="flex items-start gap-2">
+              {insight.type === "warning" && <AlertTriangle className="w-4 h-4 text-amber mt-0.5" />}
+              {insight.type === "success" && <TrendingUp className="w-4 h-4 text-jade mt-0.5" />}
+              {insight.type === "info" && <Brain className="w-4 h-4 text-iris mt-0.5" />}
+              {insight.type === "action" && <Target className="w-4 h-4 text-text-secondary mt-0.5" />}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-text-primary">{insight.title}</div>
+                <div className="text-xs text-text-tertiary mt-0.5">{insight.description}</div>
+                {insight.action && insight.actionHref && (
+                  <Link href={insight.actionHref}>
+                    <Button variant="ghost" size="sm" className="mt-2 h-7 px-2 text-xs">
+                      {insight.action}
+                      <ArrowUpRight className="w-3 h-3 ml-1" />
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
   );
 }
 
 export default function DemoQualityGatePage() {
   const toast = useToastActions();
   const router = useRouter();
+  const { selectedRole } = useDemoStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("insights");
@@ -193,29 +415,37 @@ export default function DemoQualityGatePage() {
   const [isScoring, setIsScoring] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Filter stories based on persona
+  const personaFilteredStories = useMemo(() => {
+    return filterStoriesForPersona(PERSONA_STORIES, selectedRole);
+  }, [selectedRole]);
+
   const storiesAtRisk = DEMO_STORY_SLIP_PREDICTIONS.filter(p => p.slipProbability >= 50).length;
 
-  const filteredStories = DEMO_STORIES.filter((story) => {
-    if (searchQuery && !story.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !story.jiraKey.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    if (scoreFilter !== "all" && story.score) {
-      const score = story.score.totalScore;
-      switch (scoreFilter) {
-        case "excellent": if (score < 85) return false; break;
-        case "good": if (score < 70 || score >= 85) return false; break;
-        case "fair": if (score < 50 || score >= 70) return false; break;
-        case "poor": if (score >= 50) return false; break;
+  // Apply search and score filters on top of persona filter
+  const filteredStories = useMemo(() => {
+    return personaFilteredStories.filter((story) => {
+      if (searchQuery && !story.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !story.jiraKey.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
       }
-    }
-    return true;
-  });
+      if (scoreFilter !== "all" && story.score) {
+        const score = story.score.totalScore;
+        switch (scoreFilter) {
+          case "excellent": if (score < 85) return false; break;
+          case "good": if (score < 70 || score >= 85) return false; break;
+          case "fair": if (score < 50 || score >= 70) return false; break;
+          case "poor": if (score >= 50) return false; break;
+        }
+      }
+      return true;
+    });
+  }, [personaFilteredStories, searchQuery, scoreFilter]);
 
   const handleScoreSprint = async () => {
     setIsScoring(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    toast.success("Sprint scored", `Analyzed ${DEMO_STORIES.length} stories with AI`);
+    toast.success("Sprint scored", `Analyzed ${filteredStories.length} stories with AI`);
     setIsScoring(false);
   };
 
@@ -230,7 +460,22 @@ export default function DemoQualityGatePage() {
     <div>
       <PageHeader
         title="Quality Gate"
-        description="AI-powered story quality analysis with ML slip prediction"
+        description={
+          <span className="flex items-center gap-2">
+            AI-powered story quality analysis with ML slip prediction
+            <HelpTooltip
+              content={
+                <div className="max-w-xs">
+                  <p className="font-medium mb-1">Quality Gate</p>
+                  <p className="text-slate-300 text-xs">
+                    Analyzes your JIRA stories using AI to identify quality issues before they impact your sprint.
+                    Each story is scored on 5 dimensions: Completeness, Clarity, Estimability, Traceability, and Testability.
+                  </p>
+                </div>
+              }
+            />
+          </span>
+        }
         actions={
           <div className="flex items-center gap-3">
             {/* ML Prediction Badge */}
@@ -240,6 +485,10 @@ export default function DemoQualityGatePage() {
                 <span className="text-sm font-medium text-coral">
                   {storiesAtRisk} slip {storiesAtRisk === 1 ? 'risk' : 'risks'}
                 </span>
+                <HelpTooltip
+                  content="ML-predicted stories likely to slip based on historical patterns and current quality scores."
+                  side="bottom"
+                />
               </div>
             )}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-iris/10 border border-iris/20">
@@ -247,6 +496,10 @@ export default function DemoQualityGatePage() {
               <span className="text-sm font-medium text-iris">
                 {DEMO_SPRINT_PREDICTION.projectedCompletion.likely}% predicted
               </span>
+              <HelpTooltip
+                content="ML prediction of sprint completion based on current velocity, story quality, and historical data."
+                side="bottom"
+              />
             </div>
             <Button
               variant="secondary"
@@ -270,10 +523,14 @@ export default function DemoQualityGatePage() {
         }
       />
 
+      {/* Persona Context Banner */}
+      <PersonaContextBanner role={selectedRole} />
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left: Sprint Health */}
-        <div className="lg:col-span-1">
-          <SprintHealthPanel stories={DEMO_STORIES} />
+        {/* Left: Sprint Health & Insights */}
+        <div className="lg:col-span-1 space-y-4">
+          <SprintHealthPanel stories={filteredStories} role={selectedRole} />
+          <PersonaInsightsPanel role={selectedRole} />
         </div>
 
         {/* Right: Story List */}
@@ -381,7 +638,9 @@ export default function DemoQualityGatePage() {
 
           {/* Results count */}
           <div className="text-sm text-text-tertiary mb-3">
-            Showing {filteredStories.length} of {DEMO_STORIES.length} stories
+            Showing {filteredStories.length} of {personaFilteredStories.length} stories
+            <span className="mx-2">•</span>
+            <span className="text-text-secondary">{PERSONA_CONFIGS[selectedRole].label} view</span>
             {viewMode === "insights" && (
               <span className="ml-2 px-2 py-0.5 rounded bg-iris/10 text-iris text-xs font-medium">
                 AI Insights Mode

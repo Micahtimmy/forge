@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { PersonaRole } from "@/lib/demo/persona-data";
 
 type Theme = "dark" | "light" | "system";
 
@@ -24,6 +25,10 @@ interface AppState {
   // Current workspace
   currentWorkspaceId: string | null;
   setCurrentWorkspaceId: (id: string | null) => void;
+
+  // User role for persona-aware features
+  userRole: PersonaRole;
+  setUserRole: (role: PersonaRole) => void;
 
   // JIRA sync status
   jiraSyncStatus: "idle" | "syncing" | "error";
@@ -62,6 +67,10 @@ export const useAppStore = create<AppState>()(
       currentWorkspaceId: null,
       setCurrentWorkspaceId: (id) => set({ currentWorkspaceId: id }),
 
+      // User role
+      userRole: "scrum_master",
+      setUserRole: (role) => set({ userRole: role }),
+
       // JIRA sync
       jiraSyncStatus: "idle",
       lastSyncedAt: null,
@@ -75,6 +84,7 @@ export const useAppStore = create<AppState>()(
         sidebarPinned: state.sidebarPinned,
         theme: state.theme,
         currentWorkspaceId: state.currentWorkspaceId,
+        userRole: state.userRole,
       }),
     }
   )

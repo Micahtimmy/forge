@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -8,6 +9,10 @@ import {
   List,
   Zap,
   RefreshCw,
+  TrendingUp,
+  AlertTriangle,
+  Sparkles,
+  FileText,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StoryCard } from "@/components/quality-gate/story-card";
@@ -15,6 +20,8 @@ import { SprintHealthSnapshot } from "@/components/quality-gate/sprint-health-sn
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HelpTooltip, HelpInline } from "@/components/ui/help-tooltip";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { useToastActions } from "@/components/ui/toast";
 import {
   Select,
@@ -34,14 +41,200 @@ import {
 import { SkeletonStoryCard } from "@/components/ui/skeleton";
 import { EmptyStoriesState } from "@/components/ui/empty-state";
 import { useQualityGateStore } from "@/stores/quality-gate-store";
+import { useAppStore } from "@/stores/app-store";
 import { useStories, useSprints, useStoryStats } from "@/hooks/use-stories";
 import { useJiraStatus } from "@/hooks/use-jira";
 import { JiraConnectionPrompt } from "@/components/shared/jira-connection-prompt";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion/variants";
+import {
+  PERSONA_CONFIGS,
+  getPersonaInsights,
+  HELP_CONTENT,
+  type PersonaRole,
+} from "@/lib/demo/persona-data";
+import Link from "next/link";
+
+function PersonaContextBanner({ role }: { role: PersonaRole }) {
+  const config = PERSONA_CONFIGS[role];
+  const storyFocus = config.dataFocus.stories;
+
+  const focusLabels: Record<string, string> = {
+    assigned: "your assigned stories",
+    team: "your team's stories",
+    sprint: "current sprint stories",
+    all: "all backlog stories",
+    at_risk: "at-risk stories only",
+  };
+
+  return (
+    <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-iris/10 to-transparent border border-iris/20">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-iris/20">
+            <FileText className="w-5 h-5 text-iris" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-text-primary">{config.label} View</h3>
+              <HelpTooltip
+                content={
+                  <div>
+                    <p className="font-medium mb-1">{config.label}</p>
+                    <p className="text-slate-300">{config.description}</p>
+                    <p className="mt-2 text-xs text-slate-400">
+                      Default focus: {focusLabels[storyFocus]}
+                    </p>
+                  </div>
+                }
+              />
+            </div>
+            <p className="text-sm text-text-tertiary">
+              Key metrics: {config.keyMetrics.slice(0, 3).join(", ")}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIInsightsPanel({ role }: { role: PersonaRole }) {
+  const insights = getPersonaInsights(role).filter(i =>
+    i.actionHref?.includes("quality") ||
+    i.title.toLowerCase().includes("story") ||
+    i.title.toLowerCase().includes("quality") ||
+    i.title.toLowerCase().includes("sprint")
+  );
+
+  if (insights.length === 0) {
+    return null;
+  }
+
+  return (
+    <CollapsibleSection
+      title="AI Insights"
+      helpContent={HELP_CONTENT.aiSuggestions}
+      defaultOpen={true}
+      storageKey="qg-ai-insights"
+      badge={
+        <Badge variant="default" size="sm" className="bg-iris/20 text-iris">
+          <Sparkles className="w-3 h-3 mr-1" />
+          {insights.length}
+        </Badge>
+      }
+    >
+      <div className="space-y-2">
+        {insights.map((insight, index) => (
+          <div
+            key={index}
+            className={cn(
+              "p-3 rounded-lg border",
+              insight.type === "warning" && "bg-amber/5 border-amber/20",
+              insight.type === "success" && "bg-jade/5 border-jade/20",
+              insight.type === "info" && "bg-iris/5 border-iris/20",
+              insight.type === "action" && "bg-surface-02 border-border"
+            )}
+          >
+            <div className="flex items-start gap-2">
+              {insight.type === "warning" && <AlertTriangle className="w-4 h-4 text-amber mt-0.5" />}
+              {insight.type === "success" && <TrendingUp className="w-4 h-4 text-jade mt-0.5" />}
+              {insight.type === "info" && <Sparkles className="w-4 h-4 text-iris mt-0.5" />}
+              {insight.type === "action" && <FileText className="w-4 h-4 text-text-secondary mt-0.5" />}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-text-primary">{insight.title}</div>
+                <div className="text-xs text-text-tertiary mt-0.5">{insight.description}</div>
+                {insight.action && insight.actionHref && (
+                  <Link href={insight.actionHref}>
+                    <Button variant="ghost" size="sm" className="mt-2 h-7 px-2 text-xs">
+                      {insight.action}
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+function ScoreDistributionPanel({ distribution }: { distribution: { excellent: number; good: number; fair: number; poor: number } }) {
+  const total = distribution.excellent + distribution.good + distribution.fair + distribution.poor;
+
+  return (
+    <CollapsibleSection
+      title="Score Distribution"
+      helpContent={HELP_CONTENT.scoreRing}
+      defaultOpen={true}
+      storageKey="qg-score-distribution"
+    >
+      <div className="space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-jade" />
+            <span className="text-text-secondary">Excellent (85+)</span>
+          </div>
+          <span className="font-mono text-text-primary">{distribution.excellent}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-iris" />
+            <span className="text-text-secondary">Good (70-84)</span>
+          </div>
+          <span className="font-mono text-text-primary">{distribution.good}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber" />
+            <span className="text-text-secondary">Fair (50-69)</span>
+          </div>
+          <span className="font-mono text-text-primary">{distribution.fair}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-coral" />
+            <span className="text-text-secondary">Poor (&lt;50)</span>
+          </div>
+          <span className="font-mono text-text-primary">{distribution.poor}</span>
+        </div>
+        <div className="pt-2 border-t border-border">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-text-tertiary">Total Stories</span>
+            <span className="font-mono font-medium text-text-primary">{total}</span>
+          </div>
+        </div>
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+function ScoringDimensionsPanel() {
+  return (
+    <CollapsibleSection
+      title="Scoring Dimensions"
+      helpContent="Stories are scored across 5 dimensions that determine overall quality."
+      defaultOpen={false}
+      storageKey="qg-dimensions"
+    >
+      <div className="space-y-2">
+        {Object.entries(HELP_CONTENT.storyDimensions).map(([key, description]) => (
+          <div key={key} className="p-2 rounded-lg bg-surface-02">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-text-primary capitalize">{key}</span>
+            </div>
+            <p className="text-xs text-text-tertiary">{description}</p>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
+  );
+}
 
 export default function QualityGatePage() {
   const toast = useToastActions();
+  const { userRole } = useAppStore();
   const {
     searchQuery,
     setSearchQuery,
@@ -158,7 +351,21 @@ export default function QualityGatePage() {
     <div>
       <PageHeader
         title="Quality Gate"
-        description="AI-powered story quality analysis for your sprint backlog"
+        description={
+          <span className="flex items-center gap-2">
+            AI-powered story quality analysis for your sprint backlog
+            <HelpTooltip
+              content={
+                <div className="max-w-xs">
+                  <p className="font-medium mb-1">Quality Gate Module</p>
+                  <p className="text-slate-300 text-xs">
+                    {HELP_CONTENT.scoreRing}
+                  </p>
+                </div>
+              }
+            />
+          </span>
+        }
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -186,16 +393,30 @@ export default function QualityGatePage() {
 
       {!isJiraConnected && <JiraConnectionPrompt variant="banner" />}
 
+      {/* Persona Context Banner */}
+      <PersonaContextBanner role={userRole} />
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1">
-          <SprintHealthSnapshot
-            sprintName={currentSprint?.name ?? "Sprint"}
-            healthScore={stats.avgScore}
-            totalStories={stats.totalStories}
-            distribution={distribution}
-            trend={{ direction: "up", value: 0 }}
-            storiesAtRisk={stats.storiesAtRisk}
-          />
+        <div className="lg:col-span-1 space-y-4">
+          <CollapsibleSection
+            title="Sprint Health"
+            helpContent={HELP_CONTENT.sprintHealth}
+            defaultOpen={true}
+            storageKey="qg-sprint-health"
+          >
+            <SprintHealthSnapshot
+              sprintName={currentSprint?.name ?? "Sprint"}
+              healthScore={stats.avgScore}
+              totalStories={stats.totalStories}
+              distribution={distribution}
+              trend={{ direction: "up", value: 0 }}
+              storiesAtRisk={stats.storiesAtRisk}
+            />
+          </CollapsibleSection>
+
+          <ScoreDistributionPanel distribution={distribution} />
+          <AIInsightsPanel role={userRole} />
+          <ScoringDimensionsPanel />
         </div>
 
         <div className="lg:col-span-3">
@@ -295,6 +516,13 @@ export default function QualityGatePage() {
                 <List className="w-4 h-4" />
               </button>
             </div>
+          </div>
+
+          {/* View summary */}
+          <div className="text-xs text-text-tertiary mb-3">
+            Showing {stories.length} stories
+            <span className="mx-1">•</span>
+            <span className="text-text-secondary">{PERSONA_CONFIGS[userRole].label} view</span>
           </div>
 
           {isLoading ? (
