@@ -38,7 +38,7 @@ export function HelpTooltip({
             type="button"
             className={cn(
               'inline-flex items-center justify-center rounded-full',
-              'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300',
+              'text-text-tertiary hover:text-text-secondary',
               'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-iris/50',
               className
             )}
@@ -54,8 +54,8 @@ export function HelpTooltip({
             sideOffset={6}
             className={cn(
               'z-50 max-w-xs rounded-lg px-3 py-2 text-sm',
-              'bg-slate-900 text-slate-100 dark:bg-slate-800',
-              'shadow-lg shadow-slate-900/10',
+              'bg-surface-03 text-text-primary',
+              'shadow-lg',
               'animate-in fade-in-0 zoom-in-95',
               'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
               'data-[side=bottom]:slide-in-from-top-2',
@@ -65,7 +65,7 @@ export function HelpTooltip({
             )}
           >
             {content}
-            <TooltipPrimitive.Arrow className="fill-slate-900 dark:fill-slate-800" />
+            <TooltipPrimitive.Arrow className="fill-surface-03" />
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>

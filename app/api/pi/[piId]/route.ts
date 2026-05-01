@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api/auth";
 import { getProgramIncrementById, updatePICanvasData } from "@/lib/db/queries/pis";
-import { getUserWorkspace } from "@/lib/db/queries/dashboard";
 import { z } from "zod";
 
 // Canvas data validation schema
@@ -82,26 +81,14 @@ export async function GET(
 ) {
   try {
     const { piId } = await params;
-    const supabase = await createSupabaseServerClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
+    const { workspaceId } = auth.context;
 
-    const workspace = await getUserWorkspace(user.id);
-
-    if (!workspace) {
-      return NextResponse.json(
-        { error: "No workspace found" },
-        { status: 404 }
-      );
-    }
-
-    const pi = await getProgramIncrementById(workspace.workspaceId, piId);
+    const pi = await getProgramIncrementById(workspaceId, piId);
 
     if (!pi) {
       return NextResponse.json(
@@ -127,27 +114,15 @@ export async function PATCH(
 ) {
   try {
     const { piId } = await params;
-    const supabase = await createSupabaseServerClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
-
-    const workspace = await getUserWorkspace(user.id);
-
-    if (!workspace) {
-      return NextResponse.json(
-        { error: "No workspace found" },
-        { status: 404 }
-      );
-    }
+    const { workspaceId } = auth.context;
 
     // Verify PI exists and belongs to workspace
-    const existingPI = await getProgramIncrementById(workspace.workspaceId, piId);
+    const existingPI = await getProgramIncrementById(workspaceId, piId);
     if (!existingPI) {
       return NextResponse.json(
         { error: "Program Increment not found" },
@@ -175,7 +150,7 @@ export async function PATCH(
     if (validated.canvasData) {
       // Cast to PICanvasData after validation
       await updatePICanvasData(
-        workspace.workspaceId,
+        workspaceId,
         piId,
         validated.canvasData as unknown as import("@/types/pi").PICanvasData
       );

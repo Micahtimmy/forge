@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 import {
   enrollMFA,
   verifyMFAEnrollment,
@@ -32,17 +33,22 @@ export function useMFAAssuranceLevel() {
 
 export function useEnrollMFA() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: enrollMFA,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mfa"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to enroll MFA");
+    },
   });
 }
 
 export function useVerifyMFAEnrollment() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -61,10 +67,15 @@ export function useVerifyMFAEnrollment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mfa"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to verify MFA enrollment");
+    },
   });
 }
 
 export function useVerifyMFACode() {
+  const toast = useToastActions();
+
   return useMutation({
     mutationFn: async ({
       factorId,
@@ -79,11 +90,15 @@ export function useVerifyMFACode() {
       }
       return result;
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to verify MFA code");
+    },
   });
 }
 
 export function useRemoveMFA() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (factorId: string) => {
@@ -95,6 +110,9 @@ export function useRemoveMFA() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mfa"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to remove MFA");
     },
   });
 }

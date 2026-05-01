@@ -85,7 +85,7 @@ export function ScoreRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="var(--glass-border)"
           strokeWidth={config.stroke}
         />
         {/* Progress ring */}
@@ -150,7 +150,7 @@ export function ScoreRingStatic({
           cy={center}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="var(--glass-border)"
           strokeWidth={config.stroke}
         />
         <circle

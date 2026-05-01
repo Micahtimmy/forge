@@ -1,30 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getUserWorkspace } from "@/lib/db/queries/dashboard";
+import { authenticateRequest } from "@/lib/api/auth";
 import { getQualityTrend } from "@/lib/db/queries/analytics";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import * as Sentry from "@sentry/nextjs";
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
+    const { user, workspaceId } = auth.context;
 
     const rateLimit = checkRateLimit(req, user.id, RATE_LIMITS.standard);
     if (!rateLimit.allowed) {
       return rateLimit.response;
     }
 
-    const workspace = await getUserWorkspace(user.id);
-    if (!workspace) {
-      return NextResponse.json([]);
-    }
-
-    const data = await getQualityTrend(workspace.workspaceId);
+    const data = await getQualityTrend(workspaceId);
     return NextResponse.json(data);
   } catch (error) {
     Sentry.captureException(error);

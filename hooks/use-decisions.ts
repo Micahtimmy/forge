@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 import type { Decision, DecisionFilters } from "@/lib/db/queries/decisions";
 
 interface DecisionsResponse {
@@ -67,6 +68,7 @@ export function useDecision(decisionId: string | undefined) {
 
 export function useCreateDecision() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (input: {
@@ -105,11 +107,15 @@ export function useCreateDecision() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create decision");
+    },
   });
 }
 
 export function useUpdateDecisionOutcome() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -141,11 +147,15 @@ export function useUpdateDecisionOutcome() {
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
       queryClient.invalidateQueries({ queryKey: ["decision", decisionId] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update outcome");
+    },
   });
 }
 
 export function useDeleteDecision() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (decisionId: string) => {
@@ -160,6 +170,9 @@ export function useDeleteDecision() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to delete decision");
     },
   });
 }
@@ -237,6 +250,7 @@ export function usePendingOutcomeReviews() {
  */
 export function useCreateSimpleDecision() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (input: {
@@ -273,6 +287,9 @@ export function useCreateSimpleDecision() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create decision");
     },
   });
 }

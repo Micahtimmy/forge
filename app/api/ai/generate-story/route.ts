@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
 import { generateStory } from "@/lib/ai/generate-story";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api/auth";
 
 const requestSchema = z.object({
   briefDescription: z.string().min(10).max(500),
@@ -13,13 +13,9 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
 
     const body = await request.json();

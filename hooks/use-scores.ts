@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 import type { StoryScore } from "@/types/story";
 
 interface ScoreHistoryItem {
@@ -83,6 +84,7 @@ export function useScoreStats(params: { sprintId?: string; teamId?: string } = {
 // Trigger scoring for a story
 export function useScoreStory() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -122,12 +124,16 @@ export function useScoreStory() {
       queryClient.invalidateQueries({ queryKey: ["stories"] });
       queryClient.invalidateQueries({ queryKey: ["score-stats"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to score story");
+    },
   });
 }
 
 // Trigger scoring for multiple stories
 export function useScoreMultipleStories() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -163,6 +169,9 @@ export function useScoreMultipleStories() {
       queryClient.invalidateQueries({ queryKey: ["scores"] });
       queryClient.invalidateQueries({ queryKey: ["stories"] });
       queryClient.invalidateQueries({ queryKey: ["score-stats"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to score stories");
     },
   });
 }

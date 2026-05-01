@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getUserWorkspace } from "@/lib/db/queries/dashboard";
+import { authenticateRequest } from "@/lib/api/auth";
 import { type PlanId } from "@/lib/billing/paystack";
 
 export interface SubscriptionData {
@@ -13,39 +13,26 @@ export interface SubscriptionData {
 
 export async function GET() {
   try {
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
+    }
+    const { workspaceId } = auth.context;
+
     const supabase = await createSupabaseServerClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const workspace = await getUserWorkspace(user.id);
-
-    if (!workspace) {
-      return NextResponse.json({
-        plan: "free" as PlanId,
-        status: null,
-        currentPeriodEnd: null,
-        workspaceName: "No Workspace",
-      });
-    }
 
     // Get subscription
     const { data: subscription } = await supabase
       .from("subscriptions")
       .select("plan, status, current_period_end")
-      .eq("workspace_id", workspace.workspaceId)
+      .eq("workspace_id", workspaceId)
       .single();
 
-    // Get workspace plan
+    // Get workspace data
     const { data: workspaceData } = await supabase
       .from("workspaces")
-      .select("plan")
-      .eq("id", workspace.workspaceId)
+      .select("name, plan")
+      .eq("id", workspaceId)
       .single();
 
     const plan = (subscription?.plan || workspaceData?.plan || "free") as PlanId;
@@ -54,7 +41,7 @@ export async function GET() {
       plan,
       status: subscription?.status || null,
       currentPeriodEnd: subscription?.current_period_end || null,
-      workspaceName: workspace.workspaceName,
+      workspaceName: workspaceData?.name || "Workspace",
     });
   } catch (error) {
     console.error("Subscription API error:", error);

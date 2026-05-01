@@ -4,6 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 
 export interface TeamMember {
   id: string;
@@ -43,6 +44,7 @@ export function useTeamMembers() {
  */
 export function useUpdateMemberRole() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation<
     void,
@@ -63,6 +65,9 @@ export function useUpdateMemberRole() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team", "members"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update role");
+    },
   });
 }
 
@@ -71,6 +76,7 @@ export function useUpdateMemberRole() {
  */
 export function useRemoveMember() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation<void, Error, { memberId: string }>({
     mutationFn: async ({ memberId }) => {
@@ -86,6 +92,9 @@ export function useRemoveMember() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team", "members"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to remove member");
     },
   });
 }

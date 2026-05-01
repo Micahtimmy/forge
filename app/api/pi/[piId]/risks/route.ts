@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api/auth";
 import { getPIRisks, createPIRisk, getProgramIncrementById } from "@/lib/db/queries/pis";
-import { getUserWorkspace } from "@/lib/db/queries/dashboard";
 import { z } from "zod";
 
 const createRiskSchema = z.object({
@@ -20,26 +19,14 @@ export async function GET(
 ) {
   try {
     const { piId } = await params;
-    const supabase = await createSupabaseServerClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
+    const { workspaceId } = auth.context;
 
-    const workspace = await getUserWorkspace(user.id);
-
-    if (!workspace) {
-      return NextResponse.json(
-        { error: "No workspace found" },
-        { status: 404 }
-      );
-    }
-
-    const pi = await getProgramIncrementById(workspace.workspaceId, piId);
+    const pi = await getProgramIncrementById(workspaceId, piId);
     if (!pi) {
       return NextResponse.json(
         { error: "Program Increment not found" },
@@ -66,26 +53,14 @@ export async function POST(
 ) {
   try {
     const { piId } = await params;
-    const supabase = await createSupabaseServerClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
+    const { workspaceId } = auth.context;
 
-    const workspace = await getUserWorkspace(user.id);
-
-    if (!workspace) {
-      return NextResponse.json(
-        { error: "No workspace found" },
-        { status: 404 }
-      );
-    }
-
-    const pi = await getProgramIncrementById(workspace.workspaceId, piId);
+    const pi = await getProgramIncrementById(workspaceId, piId);
     if (!pi) {
       return NextResponse.json(
         { error: "Program Increment not found" },

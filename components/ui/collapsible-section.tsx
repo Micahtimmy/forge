@@ -54,16 +54,16 @@ export function CollapsibleSection({
   };
 
   return (
-    <div className={cn('rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900', className)}>
+    <div className={cn('rounded-lg border border-border bg-surface-01', className)}>
       <button
         type="button"
         onClick={handleToggle}
         className={cn(
           'flex w-full items-center justify-between gap-3 px-4 py-3',
           'text-left transition-colors',
-          'hover:bg-slate-50 dark:hover:bg-slate-800/50',
+          'hover:bg-surface-02',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-iris/50',
-          isOpen && 'border-b border-slate-200 dark:border-slate-800',
+          isOpen && 'border-b border-border',
           headerClassName
         )}
       >
@@ -73,9 +73,9 @@ export function CollapsibleSection({
             animate={{ rotate: isOpen ? 0 : -90 }}
             transition={{ duration: 0.2 }}
           >
-            <ChevronDown className="h-4 w-4 text-slate-500" />
+            <ChevronDown className="h-4 w-4 text-text-secondary" />
           </motion.div>
-          <span className="font-medium text-slate-900 dark:text-slate-100">{title}</span>
+          <span className="font-medium text-text-primary">{title}</span>
           {helpContent && <HelpTooltip content={helpContent} />}
           {badge && <span className="ml-2">{badge}</span>}
         </div>
@@ -83,7 +83,7 @@ export function CollapsibleSection({
           {headerAction && (
             <span onClick={(e) => e.stopPropagation()}>{headerAction}</span>
           )}
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-text-tertiary">
             {isOpen ? 'Collapse' : 'Expand'}
           </span>
         </div>
@@ -129,7 +129,7 @@ export function CollapsibleInline({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+        className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
       >
         {isOpen ? (
           <ChevronDown className="h-3.5 w-3.5" />

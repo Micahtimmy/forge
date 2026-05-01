@@ -10,6 +10,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart-container";
+import { ChartSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface QualityTrendDataPoint {
@@ -23,6 +24,7 @@ interface QualityTrendChartProps {
   height?: number;
   showTarget?: boolean;
   targetValue?: number;
+  isLoading?: boolean;
   className?: string;
 }
 
@@ -31,8 +33,12 @@ export function QualityTrendChart({
   height = 300,
   showTarget = true,
   targetValue = 70,
+  isLoading,
   className,
 }: QualityTrendChartProps) {
+  if (isLoading) {
+    return <ChartSkeleton className={className} />;
+  }
   const getScoreColor = (score: number) => {
     if (score >= 85) return "var(--color-jade)";
     if (score >= 70) return "var(--color-iris)";

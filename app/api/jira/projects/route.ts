@@ -1,53 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { authenticateRequest } from "@/lib/api/auth";
 import { createUntypedAdminClient } from "@/lib/db/client";
 import { getJiraClientForWorkspace } from "@/lib/jira/auth";
 
 // Get available JIRA projects for the workspace
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const adminClient = createSupabaseAdminClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
-
-    // Get user's workspace
-    let workspaceId: string | null = null;
-
-    const { data: membership } = await adminClient
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (membership?.workspace_id) {
-      workspaceId = membership.workspace_id;
-    } else {
-      const { data: userProfile } = await adminClient
-        .from("users")
-        .select("workspace_id")
-        .eq("id", user.id)
-        .single();
-
-      if (userProfile?.workspace_id) {
-        workspaceId = userProfile.workspace_id;
-      }
-    }
-
-    if (!workspaceId) {
-      return NextResponse.json(
-        { error: "No workspace found" },
-        { status: 400 }
-      );
-    }
+    const { workspaceId } = auth.context;
 
     // Get JIRA client
     const client = await getJiraClientForWorkspace(workspaceId);
@@ -103,46 +67,11 @@ export async function GET(req: NextRequest) {
 // Update selected projects for sync
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const adminClient = createSupabaseAdminClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
-
-    // Get user's workspace
-    let workspaceId: string | null = null;
-
-    const { data: membership } = await adminClient
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (membership?.workspace_id) {
-      workspaceId = membership.workspace_id;
-    } else {
-      const { data: userProfile } = await adminClient
-        .from("users")
-        .select("workspace_id")
-        .eq("id", user.id)
-        .single();
-
-      if (userProfile?.workspace_id) {
-        workspaceId = userProfile.workspace_id;
-      }
-    }
-
-    if (!workspaceId) {
-      return NextResponse.json(
-        { error: "No workspace found" },
-        { status: 400 }
-      );
-    }
+    const { workspaceId } = auth.context;
 
     const body = await req.json();
     const { projects } = body as {

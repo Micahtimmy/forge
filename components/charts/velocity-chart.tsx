@@ -11,6 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart-container";
+import { ChartSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface VelocityDataPoint {
@@ -23,6 +24,7 @@ interface VelocityChartProps {
   data: VelocityDataPoint[];
   height?: number;
   showAverage?: boolean;
+  isLoading?: boolean;
   className?: string;
 }
 
@@ -30,8 +32,12 @@ export function VelocityChart({
   data,
   height = 300,
   showAverage = true,
+  isLoading,
   className,
 }: VelocityChartProps) {
+  if (isLoading) {
+    return <ChartSkeleton className={className} />;
+  }
   const averageCompleted =
     data.reduce((sum, d) => sum + d.completed, 0) / data.length;
 

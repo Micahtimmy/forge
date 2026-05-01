@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 
 export interface JiraStatus {
   connected: boolean;
@@ -61,6 +62,7 @@ export function useJiraStatus() {
 
 export function useJiraSync() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (options: SyncOptions = {}) => {
@@ -82,6 +84,9 @@ export function useJiraSync() {
       queryClient.invalidateQueries({ queryKey: ["stories"] });
       queryClient.invalidateQueries({ queryKey: ["sprints"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Sync failed");
+    },
   });
 }
 
@@ -102,6 +107,7 @@ export function useJiraBoards() {
 
 export function useJiraDisconnect() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async () => {
@@ -118,6 +124,9 @@ export function useJiraDisconnect() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jira-status"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to disconnect");
     },
   });
 }
@@ -139,6 +148,7 @@ export function useJiraProjects() {
 
 export function useUpdateJiraProjects() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (
@@ -165,6 +175,9 @@ export function useUpdateJiraProjects() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jira-projects"] });
       queryClient.invalidateQueries({ queryKey: ["jira-status"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update projects");
     },
   });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 import type { AudienceType } from "@/types/signal";
 
 // API response type for a single update with drafts
@@ -102,6 +103,7 @@ export function useSignalUpdate(updateId: string | null) {
 // Create a new signal update
 export function useCreateSignalUpdate() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (sprintRef: string) => {
@@ -119,12 +121,16 @@ export function useCreateSignalUpdate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["signal-updates"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create update");
+    },
   });
 }
 
 // Update signal status
 export function useUpdateSignalStatus() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -151,11 +157,16 @@ export function useUpdateSignalStatus() {
         queryKey: ["signal-update", variables.updateId],
       });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update status");
+    },
   });
 }
 
 // Generate AI update drafts
 export function useGenerateUpdate() {
+  const toast = useToastActions();
+
   return useMutation({
     mutationFn: async (params: GenerateUpdateParams) => {
       const response = await fetch("/api/ai/generate-update", {
@@ -171,11 +182,16 @@ export function useGenerateUpdate() {
 
       return response.json();
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to generate update");
+    },
   });
 }
 
 // Generate update with streaming
 export function useGenerateUpdateStream() {
+  const toast = useToastActions();
+
   return useMutation({
     mutationFn: async ({
       params,
@@ -227,12 +243,16 @@ export function useGenerateUpdateStream() {
 
       return { content: fullText };
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to generate update");
+    },
   });
 }
 
 // Save a draft
 export function useSaveDraft() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (data: {
@@ -261,12 +281,16 @@ export function useSaveDraft() {
         queryKey: ["signal-update", variables.updateId],
       });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to save draft");
+    },
   });
 }
 
 // Send an update
 export function useSendUpdate() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -301,12 +325,16 @@ export function useSendUpdate() {
       queryClient.invalidateQueries({ queryKey: ["signal-update", variables.updateId] });
       queryClient.invalidateQueries({ queryKey: ["signal-updates"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to send update");
+    },
   });
 }
 
 // Delete an update
 export function useDeleteUpdate() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (updateId: string) => {
@@ -324,12 +352,16 @@ export function useDeleteUpdate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["signal-updates"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to delete update");
+    },
   });
 }
 
 // Log a decision
 export function useLogDecision() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -359,6 +391,9 @@ export function useLogDecision() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["signal-update", variables.updateId] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to log decision");
     },
   });
 }

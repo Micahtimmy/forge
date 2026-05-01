@@ -11,6 +11,7 @@ import {
   Legend,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart-container";
+import { ChartSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface BurndownDataPoint {
@@ -24,6 +25,7 @@ interface BurndownChartProps {
   data: BurndownDataPoint[];
   height?: number;
   totalPoints: number;
+  isLoading?: boolean;
   className?: string;
 }
 
@@ -31,8 +33,12 @@ export function BurndownChart({
   data,
   height = 300,
   totalPoints,
+  isLoading,
   className,
 }: BurndownChartProps) {
+  if (isLoading) {
+    return <ChartSkeleton className={className} />;
+  }
   const lastActual = data.filter((d) => d.actual !== null).pop();
   const projectedCompletion = lastActual
     ? lastActual.actual! <= 0

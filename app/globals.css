@@ -80,6 +80,9 @@
   /* Glass panel */
   --glass-bg: rgba(13, 18, 32, 0.7);
   --glass-border: rgba(255, 255, 255, 0.06);
+
+  /* Canvas mask (for overlays) */
+  --color-canvas-mask: rgba(8, 12, 20, 0.8);
 }
 
 /* ━━━━━━━━━━ LIGHT THEME ━━━━━━━━━━ */
@@ -151,6 +154,9 @@
   /* Glass panel */
   --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(0, 0, 0, 0.06);
+
+  /* Canvas mask (for overlays) */
+  --color-canvas-mask: rgba(248, 249, 252, 0.8);
 }
 
 /* Shared variables that don't change between themes */

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 import type { PICanvasData } from "@/types/pi";
 import type { ProgramIncrement, PITeam, PIFeature, PIDependency, PIRisk } from "@/lib/db/queries/pis";
 
@@ -84,11 +85,15 @@ export function usePIs(status?: "planning" | "active" | "completed") {
 
 export function useCreatePI() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: createPI,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pis"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create PI");
     },
   });
 }
@@ -104,6 +109,7 @@ export function usePI(piId: string) {
 
 export function usePICanvasMutation(piId: string) {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: (canvasData: PICanvasData) => updatePICanvas(piId, canvasData),
@@ -112,7 +118,7 @@ export function usePICanvasMutation(piId: string) {
       queryClient.invalidateQueries({ queryKey: ["pi", piId] });
     },
     onError: (error) => {
-      console.error("Failed to save canvas:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save canvas");
     },
   });
 }
@@ -138,6 +144,7 @@ export function usePITeams(piId: string) {
 
 export function useCreatePITeam(piId: string) {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (data: { name: string; totalCapacity?: number }) => {
@@ -154,6 +161,9 @@ export function useCreatePITeam(piId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pi", piId, "teams"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create team");
     },
   });
 }
@@ -179,6 +189,7 @@ export function usePIFeatures(piId: string) {
 
 export function useCreatePIFeature(piId: string) {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (data: {
@@ -204,6 +215,9 @@ export function useCreatePIFeature(piId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pi", piId, "features"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create feature");
+    },
   });
 }
 
@@ -228,6 +242,7 @@ export function usePIDependencies(piId: string) {
 
 export function useCreatePIDependency(piId: string) {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (data: {
@@ -248,6 +263,9 @@ export function useCreatePIDependency(piId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pi", piId, "dependencies"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create dependency");
     },
   });
 }
@@ -273,6 +291,7 @@ export function usePIRisks(piId: string) {
 
 export function useCreatePIRisk(piId: string) {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (data: {
@@ -296,6 +315,9 @@ export function useCreatePIRisk(piId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pi", piId, "risks"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create risk");
     },
   });
 }
@@ -339,6 +361,8 @@ export interface TeamObjectives {
 }
 
 export function useGeneratePIObjectives() {
+  const toast = useToastActions();
+
   return useMutation({
     mutationFn: async (input: PIObjectivesInput): Promise<{ teams: TeamObjectives[] }> => {
       const response = await fetch("/api/ai/pi-objectives", {
@@ -351,6 +375,9 @@ export function useGeneratePIObjectives() {
         throw new Error(error.error || "Failed to generate objectives");
       }
       return response.json();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to generate objectives");
     },
   });
 }
@@ -426,6 +453,8 @@ export interface RiskAnalysisResult {
 }
 
 export function useAnalyzeRisks() {
+  const toast = useToastActions();
+
   return useMutation({
     mutationFn: async (input: RiskAnalysisInput): Promise<RiskAnalysisResult> => {
       const response = await fetch("/api/ai/analyze-risks", {
@@ -438,6 +467,9 @@ export function useAnalyzeRisks() {
         throw new Error(error.error || "Failed to analyze risks");
       }
       return response.json();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to analyze risks");
     },
   });
 }

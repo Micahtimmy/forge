@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 import type { ProgramIncrement, PICanvasData, PITeam, PIDependency, PIRisk } from "@/types/pi";
 
 interface PIFilters {
@@ -52,6 +53,7 @@ export function useProgramIncrement(piId: string | null) {
 // Create a new PI
 export function useCreatePI() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (data: {
@@ -76,12 +78,16 @@ export function useCreatePI() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["program-increments"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create PI");
+    },
   });
 }
 
 // Update PI canvas data
 export function useUpdatePICanvas() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -107,6 +113,9 @@ export function useUpdatePICanvas() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["program-increment", variables.piId] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update canvas");
+    },
   });
 }
 
@@ -130,6 +139,7 @@ export function usePITeams(piId: string | null) {
 // Add team to PI
 export function useAddPITeam() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -156,6 +166,9 @@ export function useAddPITeam() {
       queryClient.invalidateQueries({ queryKey: ["pi-teams", variables.piId] });
       queryClient.invalidateQueries({ queryKey: ["program-increment", variables.piId] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to add team");
+    },
   });
 }
 
@@ -179,6 +192,7 @@ export function usePIDependencies(piId: string | null) {
 // Add dependency
 export function useAddDependency() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -208,12 +222,16 @@ export function useAddDependency() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pi-dependencies", variables.piId] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to add dependency");
+    },
   });
 }
 
 // Update dependency status
 export function useUpdateDependency() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -241,6 +259,9 @@ export function useUpdateDependency() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pi-dependencies", variables.piId] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update dependency");
+    },
   });
 }
 
@@ -264,6 +285,7 @@ export function usePIRisks(piId: string | null) {
 // Add risk
 export function useAddRisk() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -295,11 +317,16 @@ export function useAddRisk() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pi-risks", variables.piId] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to add risk");
+    },
   });
 }
 
 // Generate AI-powered PI objectives
 export function useGeneratePIObjectives() {
+  const toast = useToastActions();
+
   return useMutation({
     mutationFn: async ({
       piId,
@@ -326,11 +353,16 @@ export function useGeneratePIObjectives() {
 
       return response.json();
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to generate objectives");
+    },
   });
 }
 
 // Analyze risks with AI
 export function useAnalyzePIRisks() {
+  const toast = useToastActions();
+
   return useMutation({
     mutationFn: async ({
       piId,
@@ -353,6 +385,9 @@ export function useAnalyzePIRisks() {
       }
 
       return response.json();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to analyze risks");
     },
   });
 }

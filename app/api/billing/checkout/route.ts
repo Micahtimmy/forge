@@ -8,6 +8,7 @@ import {
   PLANS,
 } from "@/lib/billing/paystack";
 import { checkRateLimit } from "@/lib/api/rate-limit";
+import { authenticateRequest } from "@/lib/api/auth";
 
 const checkoutSchema = z.object({
   planId: z.enum(["pro", "team"]),
@@ -23,19 +24,11 @@ const CHECKOUT_RATE_LIMIT = {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient();
-
-    // Get current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 }
-      );
+    const auth = await authenticateRequest();
+    if (!auth.success) {
+      return auth.response;
     }
+    const { workspaceId, user } = auth.context;
 
     // Rate limiting - prevents checkout abuse
     const rateLimit = checkRateLimit(req, user.id, CHECKOUT_RATE_LIMIT);
@@ -65,36 +58,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get or create Paystack customer
+    // Check if workspace already has a subscription
+    const supabase = await createSupabaseServerClient();
+    const { data: existingSub } = await supabase
+      .from("subscriptions")
+      .select("id, status")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "active")
+      .single();
+
+    if (existingSub) {
+      return NextResponse.json(
+        { success: false, error: "Workspace already has an active subscription" },
+        { status: 400 }
+      );
+    }
+
+    // Get user profile for customer creation
     const { data: profile } = await supabase
       .from("users")
-      .select("full_name, workspace_id")
+      .select("full_name")
       .eq("id", user.id)
-      .single<{ full_name: string | null; workspace_id: string | null }>();
-
-    // Check if workspace already has a subscription
-    if (profile?.workspace_id) {
-      const { data: existingSub } = await supabase
-        .from("subscriptions")
-        .select("id, status")
-        .eq("workspace_id", profile.workspace_id)
-        .eq("status", "active")
-        .single();
-
-      if (existingSub) {
-        return NextResponse.json(
-          { success: false, error: "Workspace already has an active subscription" },
-          { status: 400 }
-        );
-      }
-    }
+      .single<{ full_name: string | null }>();
 
     // Create Paystack customer if needed
     let customerCode: string;
     const { data: existingCustomer } = await supabase
       .from("subscriptions")
       .select("paystack_customer_code")
-      .eq("workspace_id", profile?.workspace_id || "")
+      .eq("workspace_id", workspaceId)
       .single<{ paystack_customer_code: string }>();
 
     if (existingCustomer?.paystack_customer_code) {
@@ -107,7 +99,7 @@ export async function POST(req: NextRequest) {
         lastName: names.slice(1).join(" "),
         metadata: {
           user_id: user.id,
-          workspace_id: profile?.workspace_id,
+          workspace_id: workspaceId,
         },
       });
       customerCode = customer.customer_code;
@@ -125,7 +117,7 @@ export async function POST(req: NextRequest) {
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing/callback`,
       metadata: {
         user_id: user.id,
-        workspace_id: profile?.workspace_id,
+        workspace_id: workspaceId,
         plan_id: validated.planId,
         interval: validated.interval,
         customer_code: customerCode,

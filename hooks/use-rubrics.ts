@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastActions } from "@/components/ui/toast";
 
 export interface Rubric {
   id: string;
@@ -49,6 +50,7 @@ export function useRubric(rubricId: string | null) {
 
 export function useCreateRubric() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (data: {
@@ -76,11 +78,15 @@ export function useCreateRubric() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rubrics"] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create rubric");
+    },
   });
 }
 
 export function useUpdateRubric() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async ({
@@ -117,11 +123,15 @@ export function useUpdateRubric() {
         queryKey: ["rubric", variables.rubricId],
       });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update rubric");
+    },
   });
 }
 
 export function useDeleteRubric() {
   const queryClient = useQueryClient();
+  const toast = useToastActions();
 
   return useMutation({
     mutationFn: async (rubricId: string) => {
@@ -136,6 +146,9 @@ export function useDeleteRubric() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rubrics"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to delete rubric");
     },
   });
 }

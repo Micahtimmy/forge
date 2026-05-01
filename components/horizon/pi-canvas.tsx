@@ -276,7 +276,7 @@ export function PICanvas({ canvasData, onCanvasChange }: PICanvasProps) {
           nodeStrokeColor="var(--color-border)"
           nodeColor="var(--color-surface-02)"
           nodeBorderRadius={4}
-          maskColor="rgba(8, 12, 20, 0.8)"
+          maskColor="var(--color-canvas-mask)"
           className="!bg-surface-01 !border-border !rounded-md"
         />
       </ReactFlow>
