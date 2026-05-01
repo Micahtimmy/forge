@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createUntypedServerClient } from "@/lib/db/client";
@@ -193,6 +194,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    Sentry.captureException(error, { tags: { api: "team-invite" } });
     return NextResponse.json(
       { success: false, error: "Failed to send invitation" },
       { status: 500 }
@@ -318,6 +320,7 @@ export async function PATCH(req: NextRequest) {
     });
   } catch (error) {
     console.error("Resend invite error:", error);
+    Sentry.captureException(error, { tags: { api: "team-invite-resend" } });
     return NextResponse.json(
       { success: false, error: "Failed to resend invitation" },
       { status: 500 }

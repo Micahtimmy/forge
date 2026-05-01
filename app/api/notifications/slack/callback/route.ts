@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from "@sentry/nextjs";
 import { createUntypedAdminClient } from '@/lib/db/client';
 
 const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;
@@ -152,6 +153,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('Slack callback error:', error);
+    Sentry.captureException(error, { tags: { api: "notifications-slack-callback" } });
     return NextResponse.redirect(
       `${APP_URL}/settings/integrations?error=callback_failed`
     );

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { markNotificationRead } from "@/lib/db/queries/notifications";
@@ -27,6 +28,7 @@ export async function PATCH(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[Notification PATCH] Error:", error);
+    Sentry.captureException(error, { tags: { api: "notifications-id" } });
     return NextResponse.json(
       { error: "Failed to mark notification read" },
       { status: 500 }

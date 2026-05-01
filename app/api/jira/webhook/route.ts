@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { processJiraWebhook } from "@/lib/jira/sync";
 import type { JiraWebhookEvent } from "@/types/jira";
 import crypto from "crypto";
+import * as Sentry from "@sentry/nextjs";
 
 // Verify webhook signature (Atlassian uses shared secret)
 function verifyWebhookSignature(
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, processed: true });
   } catch (error) {
     console.error("JIRA webhook error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-webhook" } });
     // Return 200 to prevent webhook retries for parsing errors
     return NextResponse.json({ received: true, error: "Processing failed" });
   }

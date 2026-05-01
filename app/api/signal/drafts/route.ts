@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { upsertSignalDraft } from "@/lib/db/queries/signals";
 
@@ -53,6 +54,9 @@ export async function POST(req: NextRequest) {
     }
 
     console.error("Save draft API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "signal-drafts" },
+    });
     return NextResponse.json(
       { error: "Failed to save draft" },
       { status: 500 }

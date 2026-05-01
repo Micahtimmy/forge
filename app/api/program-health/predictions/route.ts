@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ prediction });
   } catch (error) {
     console.error("[Predictions GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "program-health-predictions" } });
     return NextResponse.json(
       { error: "Failed to get prediction" },
       { status: 500 }
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ prediction }, { status: 201 });
   } catch (error) {
     console.error("[Predictions POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "program-health-predictions" } });
     return NextResponse.json(
       { error: "Failed to generate prediction" },
       { status: 500 }

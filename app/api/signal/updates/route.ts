@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import {
   getSignalUpdates,
@@ -47,6 +48,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ updates: formattedUpdates });
   } catch (error) {
     console.error("Signal updates API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "signal-updates-get" },
+    });
     return NextResponse.json(
       { error: "Failed to fetch updates" },
       { status: 500 }
@@ -90,6 +94,9 @@ export async function POST(req: NextRequest) {
     }
 
     console.error("Create signal update API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "signal-updates-post" },
+    });
     return NextResponse.json(
       { error: "Failed to create update" },
       { status: 500 }

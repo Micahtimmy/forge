@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getJiraClientForWorkspace } from "@/lib/jira/auth";
+import * as Sentry from "@sentry/nextjs";
 
 const TransitionSchema = z.object({
   transitionId: z.string(),
@@ -52,6 +53,7 @@ export async function GET(
     });
   } catch (error) {
     console.error("[JIRA Transitions GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-transitions-get" } });
     return NextResponse.json(
       { error: "Failed to get transitions" },
       { status: 500 }
@@ -104,6 +106,7 @@ export async function POST(
     });
   } catch (error) {
     console.error("[JIRA Transition POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-transition-post" } });
     return NextResponse.json(
       {
         error: "Failed to transition issue",

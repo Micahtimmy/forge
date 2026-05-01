@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ gates });
   } catch (error) {
     console.error("[Quality Gates GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "quality-gates" } });
     return NextResponse.json(
       { error: "Failed to list quality gates" },
       { status: 500 }
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ gate }, { status: 201 });
   } catch (error) {
     console.error("[Quality Gates POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "quality-gates" } });
     return NextResponse.json(
       { error: "Failed to create quality gate" },
       { status: 500 }

@@ -264,7 +264,10 @@ export function StoryCard({ story, onViewDetails, delay = 0 }: StoryCardProps) {
           </div>
 
           {/* Expand Toggle */}
-          <button className="p-1 text-text-tertiary hover:text-text-primary transition-colors">
+          <button
+            aria-label={expanded ? "Collapse story details" : "Expand story details"}
+            className="p-1 text-text-tertiary hover:text-text-primary transition-colors"
+          >
             {expanded ? (
               <ChevronUp className="w-4 h-4" />
             ) : (

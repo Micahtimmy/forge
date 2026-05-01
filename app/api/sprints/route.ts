@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { createUntypedServerClient } from "@/lib/db/client";
@@ -60,6 +61,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sprints: formattedSprints });
   } catch (error) {
     console.error("Sprints API error:", error);
+    Sentry.captureException(error, { tags: { api: "sprints" } });
     return NextResponse.json(
       { error: "Failed to fetch sprints" },
       { status: 500 }

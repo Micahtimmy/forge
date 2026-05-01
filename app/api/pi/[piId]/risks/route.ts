@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPIRisks, createPIRisk, getProgramIncrementById } from "@/lib/db/queries/pis";
 import { getUserWorkspace } from "@/lib/db/queries/dashboard";
@@ -51,6 +52,7 @@ export async function GET(
     return NextResponse.json({ risks });
   } catch (error) {
     console.error("PI Risks API error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-risks-list" } });
     return NextResponse.json(
       { error: "Failed to fetch risks" },
       { status: 500 }
@@ -106,6 +108,7 @@ export async function POST(
     return NextResponse.json({ risk }, { status: 201 });
   } catch (error) {
     console.error("PI Risk create error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-risks-create" } });
     return NextResponse.json(
       { error: "Failed to create risk" },
       { status: 500 }

@@ -254,6 +254,7 @@ export function DecisionLogger({
                           {ticket}
                           <button
                             onClick={() => handleRemoveTicket(ticket)}
+                            aria-label={`Remove ticket ${ticket}`}
                             className="hover:bg-surface-03 rounded p-0.5"
                           >
                             <X className="w-3 h-3" />
@@ -434,6 +435,7 @@ function DecisionRow({
                     <button
                       className="p-1.5 rounded hover:bg-surface-03 text-text-tertiary hover:text-text-primary"
                       onClick={(e) => e.stopPropagation()}
+                      aria-label="More options"
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>

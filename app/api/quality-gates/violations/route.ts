@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Quality Violations GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "quality-gates-violations" } });
     return NextResponse.json(
       { error: "Failed to list violations" },
       { status: 500 }

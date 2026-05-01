@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { createScenario, listScenarios } from "@/lib/db/queries/scenarios";
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Scenarios GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "scenarios-list" } });
     return NextResponse.json(
       { error: "Failed to list scenarios" },
       { status: 500 }
@@ -118,6 +120,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ scenario }, { status: 201 });
   } catch (error) {
     console.error("[Scenarios POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "scenarios-create" } });
     return NextResponse.json(
       { error: "Failed to create scenario" },
       { status: 500 }

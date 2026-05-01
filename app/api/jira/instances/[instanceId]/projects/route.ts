@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/api/auth';
 import { multiJiraService } from '@/lib/jira/multi-jira-service';
+import * as Sentry from "@sentry/nextjs";
 
 interface RouteContext {
   params: Promise<{ instanceId: string }>;
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ projects });
   } catch (error) {
     console.error('Get JIRA projects error:', error);
+    Sentry.captureException(error, { tags: { api: "jira-projects-get" } });
     return NextResponse.json(
       { error: 'Failed to fetch projects' },
       { status: 500 }
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json(mapping, { status: 201 });
   } catch (error) {
     console.error('Add JIRA project mapping error:', error);
+    Sentry.captureException(error, { tags: { api: "jira-projects-post" } });
     return NextResponse.json(
       { error: 'Failed to add project mapping' },
       { status: 500 }

@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from '@/lib/api/auth';
 import { createUntypedAdminClient } from '@/lib/db/client';
 
@@ -45,6 +46,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Integration status error:', error);
+    Sentry.captureException(error, { tags: { api: "notifications-status" } });
     return NextResponse.json(
       { error: 'Failed to fetch integration status' },
       { status: 500 }

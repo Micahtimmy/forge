@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPIDependencies, createPIDependency, getProgramIncrementById } from "@/lib/db/queries/pis";
 import { getUserWorkspace } from "@/lib/db/queries/dashboard";
@@ -48,6 +49,7 @@ export async function GET(
     return NextResponse.json({ dependencies });
   } catch (error) {
     console.error("PI Dependencies API error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-dependencies-list" } });
     return NextResponse.json(
       { error: "Failed to fetch dependencies" },
       { status: 500 }
@@ -108,6 +110,7 @@ export async function POST(
     return NextResponse.json({ dependency }, { status: 201 });
   } catch (error) {
     console.error("PI Dependency create error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-dependencies-create" } });
     return NextResponse.json(
       { error: "Failed to create dependency" },
       { status: 500 }

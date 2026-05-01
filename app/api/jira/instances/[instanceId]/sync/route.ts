@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/api/auth';
 import { multiJiraService } from '@/lib/jira/multi-jira-service';
+import * as Sentry from "@sentry/nextjs";
 
 interface RouteContext {
   params: Promise<{ instanceId: string }>;
@@ -30,6 +31,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('Sync JIRA instance error:', error);
+    Sentry.captureException(error, { tags: { api: "jira-instance-sync" } });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Sync failed' },
       { status: 500 }

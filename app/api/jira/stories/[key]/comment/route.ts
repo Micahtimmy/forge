@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getJiraClientForWorkspace } from "@/lib/jira/auth";
+import * as Sentry from "@sentry/nextjs";
 
 const AddCommentSchema = z.object({
   body: z.string().min(1).max(10000),
@@ -55,6 +56,7 @@ export async function POST(
     });
   } catch (error) {
     console.error("[JIRA Comment POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-comment-post" } });
     return NextResponse.json(
       {
         error: "Failed to add comment",

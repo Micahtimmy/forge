@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { compareScenarios } from "@/lib/db/queries/scenarios";
 
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("[Scenarios Compare POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "scenarios-compare" } });
     return NextResponse.json(
       {
         error: "Failed to compare scenarios",

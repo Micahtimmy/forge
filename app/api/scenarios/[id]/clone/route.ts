@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { cloneScenario } from "@/lib/db/queries/scenarios";
@@ -47,6 +48,7 @@ export async function POST(
     return NextResponse.json({ scenario }, { status: 201 });
   } catch (error) {
     console.error("[Scenario Clone POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "scenarios-clone" } });
     return NextResponse.json(
       { error: "Failed to clone scenario" },
       { status: 500 }

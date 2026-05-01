@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import {
   getTeamProfile,
@@ -44,6 +45,7 @@ export async function GET(
     });
   } catch (error) {
     console.error("[Team Profile GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "team-profile-get" } });
     return NextResponse.json(
       { error: "Failed to get team profile" },
       { status: 500 }

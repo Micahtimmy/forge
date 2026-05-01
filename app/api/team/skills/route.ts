@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { findTeamMembersBySkill } from "@/lib/db/queries/team-profiles";
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ profiles });
   } catch (error) {
     console.error("[Team Skills GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "team-skills" } });
     return NextResponse.json(
       { error: "Failed to search by skill" },
       { status: 500 }

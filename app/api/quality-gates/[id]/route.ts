@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -77,6 +78,7 @@ export async function PATCH(
     return NextResponse.json({ gate });
   } catch (error) {
     console.error("[Quality Gate PATCH] Error:", error);
+    Sentry.captureException(error, { tags: { api: "quality-gates-id" } });
     return NextResponse.json(
       { error: "Failed to update quality gate" },
       { status: 500 }
@@ -109,6 +111,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[Quality Gate DELETE] Error:", error);
+    Sentry.captureException(error, { tags: { api: "quality-gates-id" } });
     return NextResponse.json(
       { error: "Failed to delete quality gate" },
       { status: 500 }

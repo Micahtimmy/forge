@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ preferences });
   } catch (error) {
     console.error("[Notification Preferences GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "notifications-preferences" } });
     return NextResponse.json(
       { error: "Failed to get preferences" },
       { status: 500 }
@@ -93,6 +95,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ preferences });
   } catch (error) {
     console.error("[Notification Preferences PATCH] Error:", error);
+    Sentry.captureException(error, { tags: { api: "notifications-preferences" } });
     return NextResponse.json(
       { error: "Failed to update preferences" },
       { status: 500 }

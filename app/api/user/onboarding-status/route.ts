@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { createUntypedServerClient } from "@/lib/db/client";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * GET /api/user/onboarding-status
@@ -32,6 +33,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("[API] Get onboarding status error:", error);
+    Sentry.captureException(error, { tags: { api: "user-onboarding-status" } });
     return NextResponse.json(
       { error: "Failed to get onboarding status" },
       { status: 500 }
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.error("[API] Update onboarding status error:", error);
+    Sentry.captureException(error, { tags: { api: "user-onboarding-status" } });
     return NextResponse.json(
       { error: "Failed to update onboarding status" },
       { status: 500 }

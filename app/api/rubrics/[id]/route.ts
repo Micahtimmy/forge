@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { createUntypedServerClient } from "@/lib/db/client";
 
@@ -62,6 +63,7 @@ export async function GET(
     });
   } catch (error) {
     console.error("Rubric API error:", error);
+    Sentry.captureException(error, { tags: { api: "rubric-get" } });
     return NextResponse.json(
       { error: "Failed to fetch rubric" },
       { status: 500 }
@@ -151,6 +153,7 @@ export async function PATCH(
     }
 
     console.error("Update rubric API error:", error);
+    Sentry.captureException(error, { tags: { api: "rubric-update" } });
     return NextResponse.json(
       { error: "Failed to update rubric" },
       { status: 500 }
@@ -185,6 +188,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete rubric API error:", error);
+    Sentry.captureException(error, { tags: { api: "rubric-delete" } });
     return NextResponse.json(
       { error: "Failed to delete rubric" },
       { status: 500 }

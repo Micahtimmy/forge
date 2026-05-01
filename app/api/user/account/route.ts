@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 
 const deleteAccountSchema = z.object({
   confirmEmail: z.string().email(),
@@ -75,6 +76,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Account deletion error:", error);
+    Sentry.captureException(error, { tags: { api: "user-account" } });
     return NextResponse.json(
       { error: "Failed to delete account" },
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import {
@@ -33,6 +34,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("[API] Get team members error:", error);
+    Sentry.captureException(error, { tags: { api: "team-members-get" } });
     return NextResponse.json(
       { error: "Failed to fetch team members" },
       { status: 500 }
@@ -92,6 +94,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     console.error("[API] Update member role error:", error);
+    Sentry.captureException(error, { tags: { api: "team-members-update" } });
     return NextResponse.json(
       { error: "Failed to update member role" },
       { status: 500 }
@@ -146,6 +149,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     console.error("[API] Remove member error:", error);
+    Sentry.captureException(error, { tags: { api: "team-members-delete" } });
     return NextResponse.json(
       { error: "Failed to remove member" },
       { status: 500 }

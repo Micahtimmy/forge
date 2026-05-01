@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from '@/lib/api/auth';
 
 const TEAMS_CLIENT_ID = process.env.TEAMS_CLIENT_ID;
@@ -52,6 +53,7 @@ export async function GET() {
     return NextResponse.json({ url: authUrl.toString() });
   } catch (error) {
     console.error('Teams auth error:', error);
+    Sentry.captureException(error, { tags: { api: "notifications-teams-auth" } });
     return NextResponse.json(
       { error: 'Failed to initiate Teams authentication' },
       { status: 500 }

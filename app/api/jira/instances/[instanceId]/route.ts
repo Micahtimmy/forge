@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/api/auth';
 import { multiJiraService } from '@/lib/jira/multi-jira-service';
+import * as Sentry from "@sentry/nextjs";
 
 interface RouteContext {
   params: Promise<{ instanceId: string }>;
@@ -31,6 +32,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ instance, projects });
   } catch (error) {
     console.error('Get JIRA instance error:', error);
+    Sentry.captureException(error, { tags: { api: "jira-instance-get" } });
     return NextResponse.json(
       { error: 'Failed to fetch instance' },
       { status: 500 }
@@ -64,6 +66,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Update JIRA instance error:', error);
+    Sentry.captureException(error, { tags: { api: "jira-instance-patch" } });
     return NextResponse.json(
       { error: 'Failed to update instance' },
       { status: 500 }
@@ -84,6 +87,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete JIRA instance error:', error);
+    Sentry.captureException(error, { tags: { api: "jira-instance-delete" } });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to delete instance' },
       { status: 500 }

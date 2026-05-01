@@ -210,6 +210,7 @@ export function AIAssistant() {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
+                aria-label="Close chat"
                 className="p-1 text-text-tertiary hover:text-text-secondary transition-colors"
               >
                 <X className="w-5 h-5" />

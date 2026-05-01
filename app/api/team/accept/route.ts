@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createUntypedServerClient } from "@/lib/db/client";
 
@@ -83,6 +84,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Validate invite error:", error);
+    Sentry.captureException(error, { tags: { api: "team-accept-validate" } });
     return NextResponse.json(
       { success: false, error: "Failed to validate invitation" },
       { status: 500 }
@@ -196,6 +198,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Accept invite error:", error);
+    Sentry.captureException(error, { tags: { api: "team-accept" } });
     return NextResponse.json(
       { success: false, error: "Failed to accept invitation" },
       { status: 500 }

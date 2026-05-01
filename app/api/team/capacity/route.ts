@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { getTeamCapacity } from "@/lib/db/queries/team-profiles";
 
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(capacity);
   } catch (error) {
     console.error("[Team Capacity GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "team-capacity" } });
     return NextResponse.json(
       { error: "Failed to get team capacity" },
       { status: 500 }

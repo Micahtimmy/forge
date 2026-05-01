@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -56,6 +57,7 @@ export async function PATCH(
     return NextResponse.json({ violation });
   } catch (error) {
     console.error("[Quality Violation PATCH] Error:", error);
+    Sentry.captureException(error, { tags: { api: "quality-gates-violations-id" } });
     return NextResponse.json(
       { error: "Failed to update violation" },
       { status: 500 }

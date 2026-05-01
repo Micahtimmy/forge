@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from '@/lib/api/auth';
 
 const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;
@@ -51,6 +52,7 @@ export async function GET() {
     return NextResponse.json({ url: authUrl.toString() });
   } catch (error) {
     console.error('Slack auth error:', error);
+    Sentry.captureException(error, { tags: { api: "notifications-slack-auth" } });
     return NextResponse.json(
       { error: 'Failed to initiate Slack authentication' },
       { status: 500 }

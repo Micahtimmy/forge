@@ -4,6 +4,7 @@ import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getJiraClientForWorkspace } from "@/lib/jira/auth";
 import { JiraClient } from "@/lib/jira/client";
+import * as Sentry from "@sentry/nextjs";
 
 // Schema for PATCH request
 const UpdateStorySchema = z.object({
@@ -80,6 +81,7 @@ export async function GET(
     });
   } catch (error) {
     console.error("[JIRA Story GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-story-get" } });
     return NextResponse.json(
       { error: "Failed to fetch JIRA issue" },
       { status: 500 }
@@ -170,6 +172,7 @@ export async function PATCH(
     return NextResponse.json({ success: true, key });
   } catch (error) {
     console.error("[JIRA Story PATCH] Error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-story-patch" } });
     return NextResponse.json(
       {
         error: "Failed to update JIRA issue",

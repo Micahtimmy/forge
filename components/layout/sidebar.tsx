@@ -279,6 +279,7 @@ export function Sidebar() {
                 onClick={toggleSidebarPin}
                 className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-03 transition-colors"
                 title={sidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
+                aria-label={sidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
               >
                 {sidebarPinned ? (
                   <PanelLeftClose className="w-4 h-4" />
@@ -467,6 +468,7 @@ export function Sidebar() {
       {/* Expand/Collapse Toggle */}
       <button
         onClick={toggleSidebar}
+        aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
         className={cn(
           "absolute -right-3 top-1/2 -translate-y-1/2",
           "w-6 h-6 rounded-full bg-surface-02 border border-border",

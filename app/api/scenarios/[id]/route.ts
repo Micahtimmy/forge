@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import {
@@ -55,6 +56,7 @@ export async function GET(
     return NextResponse.json({ scenario });
   } catch (error) {
     console.error("[Scenario GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "scenarios-get" } });
     return NextResponse.json(
       { error: "Failed to get scenario" },
       { status: 500 }
@@ -96,6 +98,7 @@ export async function PATCH(
     return NextResponse.json({ scenario });
   } catch (error) {
     console.error("[Scenario PATCH] Error:", error);
+    Sentry.captureException(error, { tags: { api: "scenarios-update" } });
     return NextResponse.json(
       { error: "Failed to update scenario" },
       { status: 500 }
@@ -128,6 +131,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[Scenario DELETE] Error:", error);
+    Sentry.captureException(error, { tags: { api: "scenarios-delete" } });
     return NextResponse.json(
       { error: "Failed to delete scenario" },
       { status: 500 }

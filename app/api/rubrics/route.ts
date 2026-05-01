@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { createUntypedServerClient } from "@/lib/db/client";
@@ -62,6 +63,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ rubrics: formattedRubrics });
   } catch (error) {
     console.error("Rubrics API error:", error);
+    Sentry.captureException(error, { tags: { api: "rubrics" } });
     return NextResponse.json(
       { error: "Failed to fetch rubrics" },
       { status: 500 }
@@ -149,6 +151,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.error("Create rubric API error:", error);
+    Sentry.captureException(error, { tags: { api: "rubrics-create" } });
     return NextResponse.json(
       { error: "Failed to create rubric" },
       { status: 500 }

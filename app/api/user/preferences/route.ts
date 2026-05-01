@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 
 interface UserPreferences {
   user_id: string;
@@ -48,6 +49,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("User preferences GET error:", error);
+    Sentry.captureException(error, { tags: { api: "user-preferences" } });
     // Return defaults on error
     return NextResponse.json({
       emailNotifications: true,
@@ -111,6 +113,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("User preferences PATCH error:", error);
+    Sentry.captureException(error, { tags: { api: "user-preferences" } });
     return NextResponse.json(
       { error: "Failed to update preferences" },
       { status: 500 }

@@ -137,6 +137,7 @@ export function RiskReviewPanel({
               </div>
               <button
                 onClick={onClose}
+                aria-label="Close risk review panel"
                 className="p-2 rounded-lg hover:bg-surface-02 text-text-tertiary hover:text-text-primary transition-colors"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

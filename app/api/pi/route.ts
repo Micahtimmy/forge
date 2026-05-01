@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import {
@@ -77,6 +78,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ pis: pisWithCounts });
   } catch (error) {
     console.error("PIs API error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-list" } });
     return NextResponse.json({ error: "Failed to fetch PIs" }, { status: 500 });
   }
 }
@@ -131,6 +133,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.error("Create PI API error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-create" } });
     return NextResponse.json({ error: "Failed to create PI" }, { status: 500 });
   }
 }

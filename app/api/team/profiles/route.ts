@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Team Profiles GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "team-profiles-get" } });
     return NextResponse.json(
       { error: "Failed to get team profiles" },
       { status: 500 }
@@ -88,6 +90,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ profile }, { status: 201 });
   } catch (error) {
     console.error("[Team Profiles POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "team-profiles-post" } });
     return NextResponse.json(
       { error: "Failed to update team profile" },
       { status: 500 }

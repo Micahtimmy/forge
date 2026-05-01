@@ -223,6 +223,7 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
         {/* Close button */}
         <button
           onClick={onSkip}
+          aria-label="Close onboarding tour"
           className="absolute top-4 right-4 p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-03 transition-colors z-10"
         >
           <X className="w-5 h-5" />

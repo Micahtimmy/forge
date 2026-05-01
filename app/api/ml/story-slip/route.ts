@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from '@/lib/api/auth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/api/rate-limit';
 import { predictStorySlip, predictSprintStories } from '@/lib/ml/story-slip-prediction';
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(prediction);
   } catch (error) {
     console.error('Story slip prediction error:', error);
+    Sentry.captureException(error, { tags: { api: "ml-story-slip" } });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Prediction failed' },
       { status: 500 }
@@ -83,6 +85,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Sprint stories prediction error:', error);
+    Sentry.captureException(error, { tags: { api: "ml-story-slip" } });
     return NextResponse.json(
       { error: 'Failed to fetch predictions' },
       { status: 500 }

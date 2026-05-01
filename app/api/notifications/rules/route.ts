@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ rules });
   } catch (error) {
     console.error("[Notification Rules GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "notifications-rules" } });
     return NextResponse.json(
       { error: "Failed to list rules" },
       { status: 500 }
@@ -75,6 +77,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ rule }, { status: 201 });
   } catch (error) {
     console.error("[Notification Rules POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "notifications-rules" } });
     return NextResponse.json(
       { error: "Failed to create rule" },
       { status: 500 }

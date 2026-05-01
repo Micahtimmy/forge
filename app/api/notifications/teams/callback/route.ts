@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from "@sentry/nextjs";
 import { createUntypedAdminClient } from '@/lib/db/client';
 
 const TEAMS_CLIENT_ID = process.env.TEAMS_CLIENT_ID;
@@ -204,6 +205,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('Teams callback error:', error);
+    Sentry.captureException(error, { tags: { api: "notifications-teams-callback" } });
     return NextResponse.redirect(
       `${APP_URL}/settings/integrations?error=callback_failed`
     );

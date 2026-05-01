@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getProgramIncrementById, updatePICanvasData } from "@/lib/db/queries/pis";
 import { getUserWorkspace } from "@/lib/db/queries/dashboard";
@@ -112,6 +113,7 @@ export async function GET(
     return NextResponse.json(pi);
   } catch (error) {
     console.error("PI API error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-get" } });
     return NextResponse.json(
       { error: "Failed to fetch program increment" },
       { status: 500 }
@@ -182,6 +184,7 @@ export async function PATCH(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("PI update error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-update" } });
     return NextResponse.json(
       { error: "Failed to update program increment" },
       { status: 500 }

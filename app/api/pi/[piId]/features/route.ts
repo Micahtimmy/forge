@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPIFeatures, createPIFeature, getProgramIncrementById } from "@/lib/db/queries/pis";
 import { getUserWorkspace } from "@/lib/db/queries/dashboard";
@@ -52,6 +53,7 @@ export async function GET(
     return NextResponse.json({ features });
   } catch (error) {
     console.error("PI Features API error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-features-list" } });
     return NextResponse.json(
       { error: "Failed to fetch features" },
       { status: 500 }
@@ -107,6 +109,7 @@ export async function POST(
     return NextResponse.json({ feature }, { status: 201 });
   } catch (error) {
     console.error("PI Feature create error:", error);
+    Sentry.captureException(error, { tags: { api: "pi-features-create" } });
     return NextResponse.json(
       { error: "Failed to create feature" },
       { status: 500 }

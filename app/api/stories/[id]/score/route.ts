@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getStoryById } from "@/lib/db/queries/stories";
@@ -91,6 +92,9 @@ export async function POST(
     });
   } catch (error) {
     console.error("Score story API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "story-score" },
+    });
     return NextResponse.json(
       { error: "Failed to score story" },
       { status: 500 }

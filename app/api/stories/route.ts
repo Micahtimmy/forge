@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getStoriesWithScores } from "@/lib/db/queries/stories";
@@ -109,6 +110,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Stories API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "stories" },
+    });
     return NextResponse.json(
       { error: "Failed to fetch stories" },
       { status: 500 }

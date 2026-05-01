@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import {
   getSignalUpdateById,
@@ -50,6 +51,9 @@ export async function GET(
     });
   } catch (error) {
     console.error("Signal update API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "signal-update-get" },
+    });
     return NextResponse.json(
       { error: "Failed to fetch update" },
       { status: 500 }
@@ -84,6 +88,9 @@ export async function PATCH(
     }
 
     console.error("Update signal status API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "signal-update-patch" },
+    });
     return NextResponse.json(
       { error: "Failed to update status" },
       { status: 500 }
@@ -109,6 +116,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete signal update API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "signal-update-delete" },
+    });
     return NextResponse.json(
       { error: "Failed to delete update" },
       { status: 500 }

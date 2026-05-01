@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 
 interface UserProfile {
   id: string;
@@ -102,6 +103,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("User profile API error:", error);
+    Sentry.captureException(error, { tags: { api: "user-profile" } });
     return NextResponse.json(
       { error: "Failed to fetch profile" },
       { status: 500 }
@@ -164,6 +166,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("User profile PATCH error:", error);
+    Sentry.captureException(error, { tags: { api: "user-profile" } });
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Notifications GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "notifications" } });
     return NextResponse.json(
       { error: "Failed to list notifications" },
       { status: 500 }
@@ -85,6 +87,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ markedRead: count });
   } catch (error) {
     console.error("[Notifications POST] Error:", error);
+    Sentry.captureException(error, { tags: { api: "notifications" } });
     return NextResponse.json(
       { error: "Failed to mark notifications read" },
       { status: 500 }
