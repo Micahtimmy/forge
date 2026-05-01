@@ -1,13 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
 
@@ -20,6 +22,16 @@ export async function POST(req: Request) {
         { error: "Not authenticated" },
         { status: 401 }
       );
+    }
+
+    // Rate limiting - strict limit for password changes (5 per hour)
+    const rateLimitResult = checkRateLimit(req, user.id, {
+      limit: 5,
+      windowSeconds: 60 * 60, // 1 hour
+      identifier: "password-change",
+    });
+    if (!rateLimitResult.allowed) {
+      return rateLimitResult.response;
     }
 
     const body = await req.json();
@@ -63,6 +75,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Password change error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "password-change" },
+    });
     return NextResponse.json(
       { error: "Failed to change password" },
       { status: 500 }

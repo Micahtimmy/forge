@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   initializeTransaction,
@@ -146,6 +147,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    Sentry.captureException(error, {
+      tags: { api: "billing-checkout" },
+    });
     return NextResponse.json(
       {
         success: false,

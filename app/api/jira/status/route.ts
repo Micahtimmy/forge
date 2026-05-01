@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getJiraConnectionStatus } from "@/lib/jira/auth";
@@ -77,6 +78,7 @@ export async function GET(_req: NextRequest) {
     });
   } catch (error) {
     console.error("JIRA status error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-status" } });
     return NextResponse.json(
       { error: "Failed to get status" },
       { status: 500 }

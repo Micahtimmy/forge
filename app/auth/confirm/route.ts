@@ -2,6 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Validate redirect path to prevent open redirect vulnerability
+function isValidRedirectPath(path: string): boolean {
+  if (!path || typeof path !== "string") return false;
+  if (!path.startsWith("/")) return false;
+  if (path.startsWith("//")) return false;
+  if (path.includes("://")) return false;
+  if (path.includes("\\")) return false;
+  return true;
+}
+
 // This route handles email confirmation links from Supabase
 // These links include a token_hash and type parameter
 export async function GET(request: NextRequest) {
@@ -14,7 +24,8 @@ export async function GET(request: NextRequest) {
     | "magiclink"
     | "email"
     | null;
-  const next = searchParams.get("next") ?? "/";
+  const rawNext = searchParams.get("next") ?? "/";
+  const next = isValidRedirectPath(rawNext) ? rawNext : "/";
 
   if (!token_hash || !type) {
     const redirectUrl = new URL("/login", origin);

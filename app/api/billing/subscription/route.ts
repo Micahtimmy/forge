@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserWorkspace } from "@/lib/db/queries/dashboard";
 import { type PlanId } from "@/lib/billing/paystack";
@@ -57,6 +58,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Subscription API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "billing-subscription" },
+    });
     return NextResponse.json(
       { error: "Failed to fetch subscription" },
       { status: 500 }

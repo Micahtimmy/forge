@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createUntypedAdminClient } from "@/lib/db/client";
@@ -89,6 +90,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to fetch JIRA projects:", error);
+    Sentry.captureException(error, { tags: { api: "jira-projects" } });
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to fetch projects",
@@ -190,6 +192,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to update JIRA projects:", error);
+    Sentry.captureException(error, { tags: { api: "jira-projects" } });
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to update projects",

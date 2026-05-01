@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import {
   generatePIObjectives,
   streamPIObjectives,
@@ -135,7 +136,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Don't expose internal error details in production
+    Sentry.captureException(error, {
+      tags: { api: "pi-objectives" },
+    });
     return NextResponse.json(
       {
         success: false,

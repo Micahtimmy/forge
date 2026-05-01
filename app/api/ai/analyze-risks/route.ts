@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import {
   analyzeRisks,
   streamRiskAnalysis,
@@ -159,7 +160,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Don't expose internal error details in production
+    Sentry.captureException(error, {
+      tags: { api: "analyze-risks" },
+    });
+
     return NextResponse.json(
       {
         success: false,

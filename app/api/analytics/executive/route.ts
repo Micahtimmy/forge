@@ -4,6 +4,7 @@
  * Cross-workspace analytics for organization-level insights
  */
 
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/api/auth';
 import {
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Executive analytics error:', error);
+    Sentry.captureException(error, { tags: { api: "analytics-executive" } });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch analytics' },
       { status: 500 }

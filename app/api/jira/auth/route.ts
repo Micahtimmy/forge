@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getJiraAuthUrl } from "@/lib/jira/auth";
@@ -97,6 +98,7 @@ export async function GET(req: NextRequest) {
     return response;
   } catch (error) {
     console.error("JIRA auth initiation error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-auth" } });
     return NextResponse.redirect(
       new URL("/settings/jira?error=auth_failed", req.url)
     );

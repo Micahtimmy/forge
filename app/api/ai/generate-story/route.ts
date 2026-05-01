@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { generateStory } from "@/lib/ai/generate-story";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
     }
 
     console.error("Generate story API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "generate-story" },
+    });
     return NextResponse.json(
       { error: "Failed to generate story" },
       { status: 500 }

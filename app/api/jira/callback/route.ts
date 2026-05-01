@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { cookies } from "next/headers";
 import {
   exchangeCodeForTokens,
@@ -87,6 +88,7 @@ export async function GET(req: NextRequest) {
     return response;
   } catch (error) {
     console.error("JIRA callback error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-callback" } });
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("JIRA callback error details:", errorMessage);
     return NextResponse.redirect(

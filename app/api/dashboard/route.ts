@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getDashboardData, getUserWorkspace } from "@/lib/db/queries/dashboard";
@@ -39,6 +40,7 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Dashboard API error:", error);
+    Sentry.captureException(error, { tags: { api: "dashboard" } });
     return NextResponse.json(
       { error: "Failed to fetch dashboard data" },
       { status: 500 }

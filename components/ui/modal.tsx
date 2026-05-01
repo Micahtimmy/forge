@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { overlayVariants, modalVariants } from "@/lib/motion/variants";
+import { Button } from "./button";
 
 export interface ModalProps {
   open: boolean;
@@ -148,20 +149,20 @@ export function ConfirmDialog({
         <p className="text-sm text-text-secondary">{description}</p>
       )}
       <ModalFooter>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => onOpenChange(false)}
-          className="btn btn-ghost"
           disabled={isLoading}
         >
           {cancelLabel}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={variant === "danger" ? "danger" : "primary"}
           onClick={onConfirm}
-          className={cn("btn", variant === "danger" ? "btn-danger" : "btn-primary")}
           disabled={isLoading}
         >
           {isLoading ? "Loading..." : confirmLabel}
-        </button>
+        </Button>
       </ModalFooter>
     </Modal>
   );

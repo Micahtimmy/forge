@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { disconnectJira } from "@/lib/jira/auth";
 
@@ -47,6 +48,7 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("JIRA disconnect error:", error);
+    Sentry.captureException(error, { tags: { api: "jira-disconnect" } });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Disconnect failed" },
       { status: 500 }

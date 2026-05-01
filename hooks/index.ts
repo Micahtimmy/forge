@@ -24,8 +24,8 @@ export * from "./use-signal";
 // Horizon / PI planning
 export * from "./use-horizon";
 
-// JIRA sync
-export * from "./use-jira-sync";
+// JIRA integration (use-jira.ts is the canonical source)
+export * from "./use-jira";
 
 // UI hooks
 export * from "./use-command-palette";

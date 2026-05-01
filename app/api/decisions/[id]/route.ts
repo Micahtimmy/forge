@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getDecisionById } from "@/lib/db/queries/decisions";
@@ -30,6 +31,7 @@ export async function GET(
     return NextResponse.json({ decision });
   } catch (error) {
     console.error("[Decision GET] Error:", error);
+    Sentry.captureException(error, { tags: { api: "decisions-id-get" } });
     return NextResponse.json(
       { error: "Failed to get decision" },
       { status: 500 }
@@ -70,6 +72,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[Decision DELETE] Error:", error);
+    Sentry.captureException(error, { tags: { api: "decisions-id-delete" } });
     return NextResponse.json(
       { error: "Failed to delete decision" },
       { status: 500 }

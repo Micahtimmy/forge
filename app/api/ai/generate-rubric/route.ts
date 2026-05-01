@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { authenticateRequest } from "@/lib/api/auth";
 import { getModel, GENERATION_CONFIGS, generateContentWithTimeout } from "@/lib/ai/client";
 
@@ -119,6 +120,9 @@ export async function POST(req: NextRequest) {
     }
 
     console.error("Generate rubric API error:", error);
+    Sentry.captureException(error, {
+      tags: { api: "generate-rubric" },
+    });
     return NextResponse.json(
       { error: "Failed to generate rubric" },
       { status: 500 }
